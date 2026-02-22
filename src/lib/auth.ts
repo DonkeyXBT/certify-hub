@@ -1,5 +1,7 @@
 import NextAuth from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
+import Credentials from "next-auth/providers/credentials"
+import { compare } from "bcryptjs"
 import { authConfig } from "@/lib/auth.config"
 import { db } from "@/lib/db"
 import type { OrgRole } from "@prisma/client"
@@ -8,6 +10,30 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(db),
   session: { strategy: "jwt" },
   ...authConfig,
+  providers: [
+    Credentials({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null
+
+        const email = credentials.email as string
+        const password = credentials.password as string
+
+        const user = await db.user.findUnique({ where: { email } })
+
+        if (!user || !user.hashedPassword) return null
+
+        const isPasswordValid = await compare(password, user.hashedPassword)
+        if (!isPasswordValid) return null
+
+        return { id: user.id, name: user.name, email: user.email, image: user.image }
+      },
+    }),
+  ],
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -19,23 +45,10 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       if (token && session.user) {
         session.user.id = token.id as string
 
-        // Fetch active membership to populate org context
         const membership = await db.membership.findFirst({
-          where: {
-            userId: token.id as string,
-            isActive: true,
-          },
-          include: {
-            org: {
-              select: {
-                id: true,
-                slug: true,
-              },
-            },
-          },
-          orderBy: {
-            updatedAt: "desc",
-          },
+          where: { userId: token.id as string, isActive: true },
+          include: { org: { select: { id: true, slug: true } } },
+          orderBy: { updatedAt: "desc" },
         })
 
         if (membership) {
