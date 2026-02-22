@@ -78,7 +78,7 @@ export function OrgSwitcher({ currentOrg, userOrgs }: OrgSwitcherProps) {
         ))}
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/onboarding" className="flex items-center gap-2">
+          <Link href="/onboarding?new=1" className="flex items-center gap-2">
             <div className="flex size-6 items-center justify-center rounded-sm border bg-background">
               <Plus className="size-3.5" />
             </div>
