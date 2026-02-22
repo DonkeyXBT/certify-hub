@@ -6,9 +6,54 @@ import { authConfig } from "@/lib/auth.config"
 import { db } from "@/lib/db"
 import type { OrgRole } from "@prisma/client"
 
+const SESSION_MAX_AGE = 30 * 24 * 60 * 60 // 30 days in seconds
+const isProduction = process.env.NODE_ENV === "production"
+
 export const { auth, handlers, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(db),
-  session: { strategy: "jwt" },
+  session: {
+    strategy: "jwt",
+    maxAge: SESSION_MAX_AGE,
+  },
+  jwt: {
+    maxAge: SESSION_MAX_AGE,
+  },
+  cookies: {
+    sessionToken: {
+      name: isProduction
+        ? "__Secure-authjs.session-token"
+        : "authjs.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: isProduction,
+        maxAge: SESSION_MAX_AGE,
+      },
+    },
+    callbackUrl: {
+      name: isProduction
+        ? "__Secure-authjs.callback-url"
+        : "authjs.callback-url",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: isProduction,
+      },
+    },
+    csrfToken: {
+      name: isProduction
+        ? "__Host-authjs.csrf-token"
+        : "authjs.csrf-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: isProduction,
+      },
+    },
+  },
   ...authConfig,
   providers: [
     Credentials({
