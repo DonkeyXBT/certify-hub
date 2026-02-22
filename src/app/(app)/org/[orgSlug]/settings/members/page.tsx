@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { getOrganizationBySlug } from "@/lib/queries/organization"
+import { getOrganizationBySlug, getUserMembership } from "@/lib/queries/organization"
 import { db } from "@/lib/db"
 import { PageHeader } from "@/components/layout/page-header"
 import { Badge } from "@/components/ui/badge"
@@ -13,15 +13,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -30,8 +21,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ArrowLeft, UserPlus, Mail, Clock } from "lucide-react"
+import { ArrowLeft, UserPlus, Mail, ShieldAlert } from "lucide-react"
 import { format } from "date-fns"
+import { AddMemberForm } from "@/components/settings/add-member-form"
+import { MemberRoleSelect, RemoveMemberButton } from "@/components/settings/member-actions"
+import { RevokeInviteButton } from "@/components/settings/revoke-invite-button"
 
 const roleColors: Record<string, string> = {
   ADMIN: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400",
@@ -58,6 +52,11 @@ export default async function MembersPage({
 
   const org = await getOrganizationBySlug(orgSlug)
   if (!org) redirect("/onboarding")
+
+  const currentMembership = await getUserMembership(session.user.id, org.id)
+  if (!currentMembership || !currentMembership.isActive) redirect("/onboarding")
+
+  const isAdmin = currentMembership.role === "ADMIN"
 
   const [memberships, invitations] = await Promise.all([
     db.membership.findMany({
@@ -101,7 +100,7 @@ export default async function MembersPage({
       <Card>
         <CardHeader>
           <CardTitle className="text-base">
-            Team Members ({memberships.length})
+            Team Members ({memberships.filter((m) => m.isActive).length})
           </CardTitle>
           <CardDescription>
             People who have access to this organization
@@ -116,45 +115,66 @@ export default async function MembersPage({
                 <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Joined</TableHead>
+                {isAdmin && <TableHead className="w-[50px]"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {memberships.map((membership) => (
-                <TableRow key={membership.id}>
-                  <TableCell className="font-medium">
-                    {membership.user.name ?? "—"}
-                  </TableCell>
-                  <TableCell>{membership.user.email}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={roleColors[membership.role]}
-                    >
-                      {membership.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {membership.isActive ? (
-                      <Badge
-                        variant="outline"
-                        className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400"
-                      >
-                        Active
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className="bg-gray-100 text-gray-500 border-gray-200 dark:bg-gray-800 dark:text-gray-400"
-                      >
-                        Inactive
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {format(membership.createdAt, "MMM d, yyyy")}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {memberships
+                .filter((m) => m.isActive)
+                .map((membership) => {
+                  const isSelf = membership.user.id === session.user.id
+                  return (
+                    <TableRow key={membership.id}>
+                      <TableCell className="font-medium">
+                        {membership.user.name ?? "—"}
+                        {isSelf && (
+                          <span className="ml-2 text-xs text-muted-foreground">(you)</span>
+                        )}
+                      </TableCell>
+                      <TableCell>{membership.user.email}</TableCell>
+                      <TableCell>
+                        {isAdmin ? (
+                          <MemberRoleSelect
+                            membershipId={membership.id}
+                            orgId={org.id}
+                            orgSlug={orgSlug}
+                            currentRole={membership.role}
+                            isSelf={isSelf}
+                          />
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className={roleColors[membership.role]}
+                          >
+                            {membership.role}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400"
+                        >
+                          Active
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {format(membership.createdAt, "MMM d, yyyy")}
+                      </TableCell>
+                      {isAdmin && (
+                        <TableCell>
+                          <RemoveMemberButton
+                            membershipId={membership.id}
+                            orgId={org.id}
+                            orgSlug={orgSlug}
+                            memberName={membership.user.name ?? membership.user.email}
+                            isSelf={isSelf}
+                          />
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  )
+                })}
             </TableBody>
           </Table>
         </CardContent>
@@ -180,6 +200,7 @@ export default async function MembersPage({
                   <TableHead>Status</TableHead>
                   <TableHead>Expires</TableHead>
                   <TableHead>Sent</TableHead>
+                  {isAdmin && <TableHead className="w-[80px]"></TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -210,6 +231,17 @@ export default async function MembersPage({
                     <TableCell>
                       {format(invite.createdAt, "MMM d, yyyy")}
                     </TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        {invite.status === "PENDING" && (
+                          <RevokeInviteButton
+                            invitationId={invite.id}
+                            orgId={org.id}
+                            orgSlug={orgSlug}
+                          />
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -218,50 +250,35 @@ export default async function MembersPage({
         </Card>
       )}
 
-      {/* Invite form */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
-            <div className="flex items-center gap-2">
-              <UserPlus className="h-4 w-4" />
-              Invite Member
+      {/* Add member / Invite form — admin only */}
+      {isAdmin ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              <div className="flex items-center gap-2">
+                <UserPlus className="h-4 w-4" />
+                Add Member
+              </div>
+            </CardTitle>
+            <CardDescription>
+              Add an existing user to this organization by their email address.
+              They must have already registered an account.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AddMemberForm orgId={org.id} orgSlug={orgSlug} />
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <ShieldAlert className="h-5 w-5" />
+              <span>Only administrators can add or remove members.</span>
             </div>
-          </CardTitle>
-          <CardDescription>
-            Send an invitation to join this organization
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="colleague@company.com"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Select>
-                <SelectTrigger id="role" className="w-full">
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ADMIN">Administrator</SelectItem>
-                  <SelectItem value="AUDITOR">Auditor</SelectItem>
-                  <SelectItem value="MANAGER">Manager</SelectItem>
-                  <SelectItem value="VIEWER">Viewer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <Button>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Send Invitation
-          </Button>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
