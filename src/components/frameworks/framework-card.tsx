@@ -8,11 +8,13 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
 import type { FrameworkListItem } from "@/lib/queries/frameworks"
 
 interface FrameworkCardProps {
   framework: FrameworkListItem
   orgSlug: string
+  compliancePercentage?: number | null
 }
 
 const frameworkStatusColors: Record<string, string> = {
@@ -31,7 +33,13 @@ function formatStatusLabel(status: string): string {
     .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
-export function FrameworkCard({ framework, orgSlug }: FrameworkCardProps) {
+export function FrameworkCard({
+  framework,
+  orgSlug,
+  compliancePercentage,
+}: FrameworkCardProps) {
+  const hasCompliance = compliancePercentage !== null && compliancePercentage !== undefined
+
   return (
     <Link
       href={`/org/${orgSlug}/frameworks/${framework.id}`}
@@ -81,6 +89,17 @@ export function FrameworkCard({ framework, orgSlug }: FrameworkCardProps) {
                 {framework.controlCount === 1 ? "control" : "controls"}
               </span>
             </div>
+          </div>
+
+          {/* Compliance progress */}
+          <div className="space-y-1.5 pt-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Implementation</span>
+              <span className="font-medium">
+                {hasCompliance ? `${compliancePercentage}%` : "Not started"}
+              </span>
+            </div>
+            <Progress value={hasCompliance ? compliancePercentage : 0} className="h-2" />
           </div>
         </CardContent>
       </Card>

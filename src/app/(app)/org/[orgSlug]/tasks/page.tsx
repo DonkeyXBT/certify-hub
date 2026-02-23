@@ -1,24 +1,12 @@
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import Link from "next/link"
 import { getOrganizationBySlug } from "@/lib/queries/organization"
+import { getTasksForKanban } from "@/lib/queries/tasks"
+import { getMembers } from "@/lib/queries/members"
 import { db } from "@/lib/db"
 import { PageHeader } from "@/components/layout/page-header"
-import { Button } from "@/components/ui/button"
-import { StatusBadge } from "@/components/shared/status-badge"
-import { PriorityBadge } from "@/components/shared/priority-badge"
-import type { Priority } from "@/components/shared/priority-badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { EmptyState } from "@/components/shared/empty-state"
-import { ListTodo, Plus } from "lucide-react"
-import { format } from "date-fns"
+import { KanbanBoard } from "@/components/tasks/kanban-board"
+import { CreateTaskDialog } from "@/components/tasks/create-task-dialog"
 
 export default async function TasksPage({
   params,
@@ -32,15 +20,25 @@ export default async function TasksPage({
   const org = await getOrganizationBySlug(orgSlug)
   if (!org) redirect("/onboarding")
 
-  const tasks = await db.task.findMany({
-    where: { orgId: org.id, deletedAt: null },
-    include: {
-      assignee: {
-        select: { id: true, name: true, email: true, image: true },
-      },
-    },
-    orderBy: [{ status: "asc" }, { priority: "desc" }, { dueDate: "asc" }],
-  })
+  const [tasks, members, controlImpls, risks, capas] = await Promise.all([
+    getTasksForKanban(org.id),
+    getMembers(org.id),
+    db.controlImplementation.findMany({
+      where: { orgId: org.id },
+      include: { control: { select: { number: true, title: true } } },
+      orderBy: { control: { number: "asc" } },
+    }),
+    db.risk.findMany({
+      where: { orgId: org.id, deletedAt: null },
+      select: { id: true, title: true },
+      orderBy: { title: "asc" },
+    }),
+    db.cAPA.findMany({
+      where: { orgId: org.id, deletedAt: null },
+      select: { id: true, title: true },
+      orderBy: { title: "asc" },
+    }),
+  ])
 
   return (
     <div className="space-y-6">
@@ -48,55 +46,18 @@ export default async function TasksPage({
         title="Tasks"
         description="Track and manage compliance tasks and action items"
         actions={
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Task
-          </Button>
+          <CreateTaskDialog
+            orgId={org.id}
+            orgSlug={orgSlug}
+            members={members}
+            controls={controlImpls}
+            risks={risks}
+            capas={capas}
+          />
         }
       />
 
-      {tasks.length === 0 ? (
-        <EmptyState
-          icon={ListTodo}
-          title="No tasks yet"
-          description="Create tasks to track compliance action items, risk treatments, and remediation activities."
-        />
-      ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Assignee</TableHead>
-                <TableHead>Due Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tasks.map((task) => (
-                <TableRow key={task.id}>
-                  <TableCell className="font-medium">{task.title}</TableCell>
-                  <TableCell>
-                    <StatusBadge status={task.status} variant="task" />
-                  </TableCell>
-                  <TableCell>
-                    <PriorityBadge priority={task.priority as Priority} />
-                  </TableCell>
-                  <TableCell>
-                    {task.assignee?.name ?? task.assignee?.email ?? "Unassigned"}
-                  </TableCell>
-                  <TableCell>
-                    {task.dueDate
-                      ? format(task.dueDate, "MMM d, yyyy")
-                      : "—"}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+      <KanbanBoard initialTasks={tasks} orgSlug={orgSlug} />
     </div>
   )
 }

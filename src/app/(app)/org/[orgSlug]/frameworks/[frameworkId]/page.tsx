@@ -1,15 +1,17 @@
 import { auth } from "@/lib/auth"
 import { redirect, notFound } from "next/navigation"
-import { BookOpen, Shield, ArrowLeft } from "lucide-react"
+import { BookOpen, Shield, ArrowLeft, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import { getOrganizationBySlug } from "@/lib/queries/organization"
 import {
   getFrameworkWithClauses,
   getFrameworkControls,
+  getFrameworkComplianceStats,
 } from "@/lib/queries/frameworks"
 import { PageHeader } from "@/components/layout/page-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ClauseTree } from "@/components/frameworks/clause-tree"
 import { ControlList } from "@/components/frameworks/control-list"
@@ -42,15 +44,19 @@ export default async function FrameworkDetailPage({
   const org = await getOrganizationBySlug(orgSlug)
   if (!org) redirect("/onboarding")
 
-  const [framework, controls] = await Promise.all([
+  const [framework, controls, complianceStats] = await Promise.all([
     getFrameworkWithClauses(frameworkId),
     getFrameworkControls(frameworkId),
+    getFrameworkComplianceStats(org.id),
   ])
 
   if (!framework) notFound()
 
   const clauseCount = framework.clauses.length
   const controlCount = controls.length
+  const stats = complianceStats[frameworkId]
+  const compliancePercentage = stats?.percentage ?? null
+  const hasCompliance = compliancePercentage !== null
 
   return (
     <div className="space-y-6">
@@ -96,6 +102,22 @@ export default async function FrameworkDetailPage({
             {controlCount} {controlCount === 1 ? "control" : "controls"}
           </span>
         </div>
+        <div className="flex items-center gap-1.5 text-sm">
+          <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          <span className="font-medium">
+            {hasCompliance ? `${compliancePercentage}% implemented` : "Not started"}
+          </span>
+        </div>
+      </div>
+
+      {/* Compliance progress bar */}
+      <div className="max-w-md">
+        <Progress value={hasCompliance ? compliancePercentage : 0} className="h-2.5" />
+        {stats && (
+          <p className="text-xs text-muted-foreground mt-1.5">
+            {stats.fullyImplemented} fully implemented, {stats.partiallyImplemented} partially implemented of {stats.total} controls
+          </p>
+        )}
       </div>
 
       {/* Tabs for Clauses and Controls views */}

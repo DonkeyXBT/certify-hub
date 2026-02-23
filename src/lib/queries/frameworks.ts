@@ -117,3 +117,65 @@ export async function getFrameworkControls(frameworkId: string) {
 export type FrameworkControl = Awaited<
   ReturnType<typeof getFrameworkControls>
 >[number]
+
+export interface FrameworkComplianceStat {
+  total: number
+  fullyImplemented: number
+  partiallyImplemented: number
+  percentage: number
+}
+
+export async function getFrameworkComplianceStats(
+  orgId: string
+): Promise<Record<string, FrameworkComplianceStat>> {
+  // Get all controls grouped by framework, with their implementation status
+  const controls = await db.control.findMany({
+    where: { clause: { framework: { status: "PUBLISHED" } } },
+    select: {
+      id: true,
+      clause: { select: { frameworkId: true } },
+      implementations: {
+        where: { orgId },
+        select: { status: true },
+        take: 1,
+      },
+    },
+  })
+
+  const statsMap: Record<
+    string,
+    { total: number; fullyImplemented: number; partiallyImplemented: number }
+  > = {}
+
+  for (const control of controls) {
+    const fwId = control.clause.frameworkId
+    if (!statsMap[fwId]) {
+      statsMap[fwId] = { total: 0, fullyImplemented: 0, partiallyImplemented: 0 }
+    }
+    statsMap[fwId].total++
+
+    const impl = control.implementations[0]
+    if (impl) {
+      if (impl.status === "FULLY_IMPLEMENTED") {
+        statsMap[fwId].fullyImplemented++
+      } else if (impl.status === "PARTIALLY_IMPLEMENTED") {
+        statsMap[fwId].partiallyImplemented++
+      }
+    }
+  }
+
+  const result: Record<string, FrameworkComplianceStat> = {}
+  for (const [fwId, stats] of Object.entries(statsMap)) {
+    const percentage =
+      stats.total > 0
+        ? Math.round(
+            ((stats.fullyImplemented + stats.partiallyImplemented * 0.5) /
+              stats.total) *
+              100
+          )
+        : 0
+    result[fwId] = { ...stats, percentage }
+  }
+
+  return result
+}

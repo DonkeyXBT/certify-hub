@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { BookOpen } from "lucide-react"
 import { getOrganizationBySlug } from "@/lib/queries/organization"
-import { getFrameworks } from "@/lib/queries/frameworks"
+import { getFrameworks, getFrameworkComplianceStats } from "@/lib/queries/frameworks"
 import { PageHeader } from "@/components/layout/page-header"
 import { FrameworkCard } from "@/components/frameworks/framework-card"
 import { EmptyState } from "@/components/shared/empty-state"
@@ -19,7 +19,10 @@ export default async function FrameworksPage({
   const org = await getOrganizationBySlug(orgSlug)
   if (!org) redirect("/onboarding")
 
-  const frameworks = await getFrameworks()
+  const [frameworks, complianceStats] = await Promise.all([
+    getFrameworks(),
+    getFrameworkComplianceStats(org.id),
+  ])
 
   return (
     <div className="space-y-6">
@@ -36,13 +39,17 @@ export default async function FrameworksPage({
         />
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {frameworks.map((framework) => (
-            <FrameworkCard
-              key={framework.id}
-              framework={framework}
-              orgSlug={orgSlug}
-            />
-          ))}
+          {frameworks.map((framework) => {
+            const stats = complianceStats[framework.id]
+            return (
+              <FrameworkCard
+                key={framework.id}
+                framework={framework}
+                orgSlug={orgSlug}
+                compliancePercentage={stats?.percentage ?? null}
+              />
+            )
+          })}
         </div>
       )}
     </div>
