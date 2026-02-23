@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Shield } from "lucide-react"
+import { Shield, ChevronDown, ListChecks } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -13,14 +13,48 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { SearchInput } from "@/components/shared/search-input"
 import { EmptyState } from "@/components/shared/empty-state"
+import { cn } from "@/lib/utils"
 import type { FrameworkControl } from "@/lib/queries/frameworks"
 
 interface ControlListProps {
   controls: FrameworkControl[]
 }
 
+function GuidanceSteps({ guidance }: { guidance: string }) {
+  const lines = guidance
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+
+  const steps = lines.map((line) =>
+    line.replace(/^[-•]\s*/, "").replace(/^\d+\.\s*/, "")
+  )
+
+  return (
+    <div className="rounded-md bg-muted/40 p-3">
+      <div className="flex items-center gap-1.5 mb-2">
+        <ListChecks className="h-3.5 w-3.5 text-primary" />
+        <span className="text-xs font-semibold text-primary">
+          Implementation Steps
+        </span>
+      </div>
+      <ul className="space-y-1.5">
+        {steps.map((step, i) => (
+          <li key={i} className="flex gap-2 text-xs text-muted-foreground">
+            <span className="shrink-0 font-mono text-primary/60">
+              {i + 1}.
+            </span>
+            <span>{step}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 export function ControlList({ controls }: ControlListProps) {
   const [search, setSearch] = React.useState("")
+  const [expandedId, setExpandedId] = React.useState<string | null>(null)
 
   const filteredControls = React.useMemo(() => {
     if (!search) return controls
@@ -67,39 +101,79 @@ export function ControlList({ controls }: ControlListProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredControls.map((control) => (
-                <TableRow key={control.id}>
-                  <TableCell>
-                    <span className="font-mono text-xs">
-                      {control.number}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <span className="font-medium">{control.title}</span>
-                      {control.objective && (
-                        <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">
-                          {control.objective}
-                        </p>
+              {filteredControls.map((control) => {
+                const isExpanded = expandedId === control.id
+                const hasDetails = !!control.objective || !!control.guidance
+
+                return (
+                  <React.Fragment key={control.id}>
+                    <TableRow
+                      className={cn(
+                        hasDetails && "cursor-pointer",
+                        isExpanded && "bg-muted/30"
                       )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {control.category ? (
-                      <Badge variant="secondary" className="text-xs">
-                        {control.category}
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground">--</span>
+                      onClick={() =>
+                        hasDetails &&
+                        setExpandedId(isExpanded ? null : control.id)
+                      }
+                    >
+                      <TableCell>
+                        <span className="font-mono text-xs">
+                          {control.number}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{control.title}</span>
+                          {hasDetails && (
+                            <ChevronDown
+                              className={cn(
+                                "h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200",
+                                !isExpanded && "-rotate-90"
+                              )}
+                            />
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {control.category ? (
+                          <Badge variant="secondary" className="text-xs">
+                            {control.category}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">--</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs text-muted-foreground">
+                          {control.clause.number} - {control.clause.title}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                    {isExpanded && (
+                      <TableRow className="bg-muted/20 hover:bg-muted/20">
+                        <TableCell colSpan={4} className="py-3">
+                          <div className="space-y-3 pl-4">
+                            {control.objective && (
+                              <div>
+                                <span className="text-xs font-semibold text-foreground">
+                                  Objective
+                                </span>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  {control.objective}
+                                </p>
+                              </div>
+                            )}
+                            {control.guidance && (
+                              <GuidanceSteps guidance={control.guidance} />
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
                     )}
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-xs text-muted-foreground">
-                      {control.clause.number} - {control.clause.title}
-                    </span>
-                  </TableCell>
-                </TableRow>
-              ))}
+                  </React.Fragment>
+                )
+              })}
             </TableBody>
           </Table>
         </div>

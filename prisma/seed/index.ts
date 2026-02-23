@@ -4,6 +4,11 @@ import { seedISO9001 } from "./iso9001-clauses"
 import { seedGDPR } from "./gdpr-clauses"
 import { seedNIS2 } from "./nis2-clauses"
 import { seedSOC2 } from "./soc2-clauses"
+import { seedHIPAA } from "./hipaa-clauses"
+import { seedPCIDSS } from "./pcidss-clauses"
+import { seedNISTCSF } from "./nist-csf-clauses"
+import { seedDORA } from "./dora-clauses"
+import { seedISO22301 } from "./iso22301-clauses"
 import { seedDemoData } from "./demo-data"
 
 const prisma = new PrismaClient()
@@ -20,6 +25,16 @@ async function main() {
   console.log("NIS2 seeded")
   await seedSOC2(prisma)
   console.log("SOC 2 Type II seeded")
+  await seedHIPAA(prisma)
+  console.log("HIPAA seeded")
+  await seedPCIDSS(prisma)
+  console.log("PCI DSS seeded")
+  await seedNISTCSF(prisma)
+  console.log("NIST CSF seeded")
+  await seedDORA(prisma)
+  console.log("DORA seeded")
+  await seedISO22301(prisma)
+  console.log("ISO 22301 seeded")
   await seedDemoData(prisma)
   console.log("Demo data seeded")
 

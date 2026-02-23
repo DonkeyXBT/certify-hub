@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronRight, FileText, Shield } from "lucide-react"
+import { ChevronRight, ChevronDown, FileText, Shield, ListChecks } from "lucide-react"
 import {
   Collapsible,
   CollapsibleContent,
@@ -20,6 +20,108 @@ interface ClauseTreeProps {
 interface ClauseNodeProps {
   clause: ClauseWithChildren
   depth: number
+}
+
+// ─── Guidance renderer ──────────────────────────────────────────────────────
+
+function GuidanceSteps({ guidance }: { guidance: string }) {
+  const lines = guidance
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+
+  const steps = lines.map((line) =>
+    line.replace(/^[-•]\s*/, "").replace(/^\d+\.\s*/, "")
+  )
+
+  return (
+    <div className="mt-2 rounded-md bg-muted/40 p-3">
+      <div className="flex items-center gap-1.5 mb-2">
+        <ListChecks className="h-3.5 w-3.5 text-primary" />
+        <span className="text-xs font-semibold text-primary">
+          Implementation Steps
+        </span>
+      </div>
+      <ul className="space-y-1.5">
+        {steps.map((step, i) => (
+          <li key={i} className="flex gap-2 text-xs text-muted-foreground">
+            <span className="shrink-0 font-mono text-primary/60">
+              {i + 1}.
+            </span>
+            <span>{step}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+// ─── Control Node (expandable) ──────────────────────────────────────────────
+
+function ControlNode({
+  control,
+  depth,
+}: {
+  control: ClauseWithChildren["controls"][number]
+  depth: number
+}) {
+  const [expanded, setExpanded] = React.useState(false)
+  const hasGuidance = !!control.guidance
+
+  return (
+    <div
+      className={cn(
+        "rounded-md border-l-2 border-muted ml-2 text-sm",
+        "hover:bg-muted/30 transition-colors"
+      )}
+      style={{ paddingLeft: `${(depth + 1) * 24 + 12}px` }}
+    >
+      <button
+        className="flex w-full items-start gap-2 px-3 py-2 text-left"
+        onClick={() => hasGuidance && setExpanded(!expanded)}
+        type="button"
+      >
+        <Shield className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs text-muted-foreground">
+              {control.number}
+            </span>
+            <span className="truncate font-medium">{control.title}</span>
+            {control.category && (
+              <Badge
+                variant="secondary"
+                className="ml-auto shrink-0 text-xs"
+              >
+                {control.category}
+              </Badge>
+            )}
+            {hasGuidance && (
+              <ChevronDown
+                className={cn(
+                  "h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200",
+                  !expanded && "-rotate-90"
+                )}
+              />
+            )}
+          </div>
+          {control.objective && (
+            <p
+              className={cn(
+                "mt-1 text-xs text-muted-foreground",
+                !expanded && "line-clamp-2"
+              )}
+            >
+              {control.objective}
+            </p>
+          )}
+          {expanded && control.guidance && (
+            <GuidanceSteps guidance={control.guidance} />
+          )}
+        </div>
+      </button>
+    </div>
+  )
 }
 
 // ─── Clause Tree ────────────────────────────────────────────────────────────
@@ -120,39 +222,11 @@ function ClauseNode({ clause, depth }: ClauseNodeProps) {
         {hasControls && (
           <div className="space-y-1 py-1">
             {clause.controls.map((control) => (
-              <div
+              <ControlNode
                 key={control.id}
-                className={cn(
-                  "flex items-start gap-2 rounded-md px-3 py-2 text-sm",
-                  "hover:bg-muted/30 border-l-2 border-muted ml-2"
-                )}
-                style={{ paddingLeft: `${(depth + 1) * 24 + 12}px` }}
-              >
-                <Shield className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {control.number}
-                    </span>
-                    <span className="truncate font-medium">
-                      {control.title}
-                    </span>
-                    {control.category && (
-                      <Badge
-                        variant="secondary"
-                        className="ml-auto shrink-0 text-xs"
-                      >
-                        {control.category}
-                      </Badge>
-                    )}
-                  </div>
-                  {control.objective && (
-                    <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
-                      {control.objective}
-                    </p>
-                  )}
-                </div>
-              </div>
+                control={control}
+                depth={depth}
+              />
             ))}
           </div>
         )}
