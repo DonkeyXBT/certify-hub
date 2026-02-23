@@ -9,6 +9,7 @@ export async function createTrainingProgram(formData: FormData) {
   if (!session?.user?.id) return { error: "Unauthorized" }
 
   const orgId = formData.get("orgId") as string
+  const orgSlug = formData.get("orgSlug") as string
   const title = formData.get("title") as string
   const description = formData.get("description") as string
   const frequency = formData.get("frequency") as string
@@ -30,11 +31,15 @@ export async function createTrainingProgram(formData: FormData) {
     },
   })
 
-  revalidatePath(`/org/[orgSlug]/training`)
+  revalidatePath(`/org/${orgSlug}/training`)
   return { id: program.id }
 }
 
-export async function assignTraining(programId: string, userIds: string[]) {
+export async function assignTraining(
+  programId: string,
+  userIds: string[],
+  orgSlug: string
+) {
   const session = await auth()
   if (!session?.user?.id) return { error: "Unauthorized" }
 
@@ -46,24 +51,56 @@ export async function assignTraining(programId: string, userIds: string[]) {
     })
   }
 
-  revalidatePath(`/org/[orgSlug]/training`)
+  revalidatePath(`/org/${orgSlug}/training`)
+  revalidatePath(`/org/${orgSlug}/training/${programId}`)
   return { success: true }
 }
 
-export async function updateTrainingRecord(recordId: string, data: { status?: string; score?: number }) {
+export async function updateTrainingRecord(
+  recordId: string,
+  data: { status?: string; score?: number },
+  orgSlug: string
+) {
   const session = await auth()
   if (!session?.user?.id) return { error: "Unauthorized" }
 
-  await db.trainingRecord.update({
+  const updateData: Record<string, unknown> = {}
+  if (data.status) updateData.status = data.status
+  if (data.score !== undefined) updateData.score = data.score
+  if (data.status === "COMPLETED") updateData.completedAt = new Date()
+  if (data.status === "IN_PROGRESS" ) updateData.startedAt = new Date()
+
+  const record = await db.trainingRecord.update({
     where: { id: recordId },
-    data: {
-      status: data.status as any,
-      score: data.score,
-      completedAt: data.status === "COMPLETED" ? new Date() : undefined,
-      startedAt: data.status === "IN_PROGRESS" ? new Date() : undefined,
-    },
+    data: updateData,
+    include: { program: { select: { id: true } } },
   })
 
-  revalidatePath(`/org/[orgSlug]/training`)
+  revalidatePath(`/org/${orgSlug}/training`)
+  revalidatePath(`/org/${orgSlug}/training/${record.program.id}`)
+  return { success: true }
+}
+
+export async function deleteTrainingProgram(programId: string, orgSlug: string) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "Unauthorized" }
+
+  await db.trainingProgram.delete({ where: { id: programId } })
+
+  revalidatePath(`/org/${orgSlug}/training`)
+  return { success: true }
+}
+
+export async function removeTrainingRecord(recordId: string, orgSlug: string) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "Unauthorized" }
+
+  const record = await db.trainingRecord.delete({
+    where: { id: recordId },
+    include: { program: { select: { id: true } } },
+  })
+
+  revalidatePath(`/org/${orgSlug}/training`)
+  revalidatePath(`/org/${orgSlug}/training/${record.program.id}`)
   return { success: true }
 }

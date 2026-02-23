@@ -3,7 +3,6 @@ import { redirect } from "next/navigation"
 import { getOrganizationBySlug } from "@/lib/queries/organization"
 import { db } from "@/lib/db"
 import { PageHeader } from "@/components/layout/page-header"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
   Table,
@@ -14,7 +13,9 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { EmptyState } from "@/components/shared/empty-state"
-import { GraduationCap, Plus } from "lucide-react"
+import { CreateProgramDialog } from "@/components/training/create-program-dialog"
+import { GraduationCap } from "lucide-react"
+import Link from "next/link"
 
 export default async function TrainingPage({
   params,
@@ -58,16 +59,21 @@ export default async function TrainingPage({
     }
   })
 
+  const frequencyLabel: Record<string, string> = {
+    ONE_TIME: "One-time",
+    MONTHLY: "Monthly",
+    QUARTERLY: "Quarterly",
+    SEMI_ANNUAL: "Semi-annual",
+    ANNUAL: "Annual",
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Training"
         description="Manage training programs and track completion"
         actions={
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            New Program
-          </Button>
+          <CreateProgramDialog orgId={org.id} orgSlug={orgSlug} />
         }
       />
 
@@ -91,11 +97,20 @@ export default async function TrainingPage({
             </TableHeader>
             <TableBody>
               {programsWithStats.map((program) => (
-                <TableRow key={program.id}>
+                <TableRow key={program.id} className="cursor-pointer">
                   <TableCell className="font-medium">
-                    {program.title}
+                    <Link
+                      href={`/org/${orgSlug}/training/${program.id}`}
+                      className="hover:underline"
+                    >
+                      {program.title}
+                    </Link>
                   </TableCell>
-                  <TableCell>{program.frequency ?? "—"}</TableCell>
+                  <TableCell>
+                    {program.frequency
+                      ? frequencyLabel[program.frequency] ?? program.frequency
+                      : "—"}
+                  </TableCell>
                   <TableCell>
                     {program.isMandatory ? (
                       <Badge
