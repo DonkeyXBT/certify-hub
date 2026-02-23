@@ -43,6 +43,7 @@ export async function uploadFrameworkToBlob(
     contentType: "application/json",
     addRandomSuffix: false,
     access: "private",
+    allowOverwrite: true,
   })
   return blob.url
 }
