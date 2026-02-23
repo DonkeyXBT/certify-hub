@@ -12,6 +12,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "npx tsx prisma/seed/index.ts",
     "db:studio": "prisma studio",
+    "blob:upload": "npx tsx scripts/upload-frameworks-to-blob.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
@@ -22,6 +23,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^6.19.2",
     "@tanstack/react-table": "^8.21.3",
+    "@vercel/blob": "^2.3.0",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

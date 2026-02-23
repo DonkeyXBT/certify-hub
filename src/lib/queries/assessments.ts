@@ -1,4 +1,5 @@
 import { db } from "@/lib/db"
+import { getFrameworkFromBlob, type BlobClause } from "@/lib/blob"
 
 export async function getAssessmentsByOrg(orgId: string) {
   return db.assessment.findMany({
@@ -27,28 +28,18 @@ export type AssessmentListItem = Awaited<
 >[number]
 
 export async function getAssessmentById(assessmentId: string) {
-  return db.assessment.findUnique({
+  // Lightweight assessment query — no deep framework include
+  const assessment = await db.assessment.findUnique({
     where: { id: assessmentId },
     include: {
       framework: {
-        include: {
-          clauses: {
-            where: { parentId: null },
-            orderBy: { sortOrder: "asc" },
-            include: {
-              controls: { orderBy: { number: "asc" } },
-              children: {
-                orderBy: { sortOrder: "asc" },
-                include: {
-                  controls: { orderBy: { number: "asc" } },
-                  children: {
-                    orderBy: { sortOrder: "asc" },
-                    include: { controls: { orderBy: { number: "asc" } } },
-                  },
-                },
-              },
-            },
-          },
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          version: true,
+          description: true,
+          status: true,
         },
       },
       responses: {
@@ -72,6 +63,50 @@ export async function getAssessmentById(assessmentId: string) {
       },
     },
   })
+
+  if (!assessment) return null
+
+  // Get the full clause tree from blob (fast) or fallback to DB
+  const blobData = await getFrameworkFromBlob(assessment.framework.code)
+
+  let clauses: BlobClause[]
+  if (blobData) {
+    clauses = blobData.clauses
+  } else {
+    // Fallback: deep nested Prisma query
+    const frameworkData = await db.framework.findUnique({
+      where: { id: assessment.framework.id },
+      include: {
+        clauses: {
+          where: { parentId: null },
+          orderBy: { sortOrder: "asc" },
+          include: {
+            controls: { orderBy: { number: "asc" } },
+            children: {
+              orderBy: { sortOrder: "asc" },
+              include: {
+                controls: { orderBy: { number: "asc" } },
+                children: {
+                  orderBy: { sortOrder: "asc" },
+                  include: { controls: { orderBy: { number: "asc" } } },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+    clauses = (frameworkData?.clauses ?? []) as unknown as BlobClause[]
+  }
+
+  // Return combined shape
+  return {
+    ...assessment,
+    framework: {
+      ...assessment.framework,
+      clauses,
+    },
+  }
 }
 
 export type AssessmentWithResponses = NonNullable<
@@ -79,36 +114,41 @@ export type AssessmentWithResponses = NonNullable<
 >
 
 export async function getAssessmentItems(frameworkId: string) {
-  const clauses = await db.clause.findMany({
-    where: {
-      frameworkId,
-      parentId: null,
-    },
-    include: {
-      controls: {
-        orderBy: { number: "asc" },
-      },
-      children: {
-        orderBy: { sortOrder: "asc" },
+  // Try blob first
+  const fw = await db.framework.findUnique({
+    where: { id: frameworkId },
+    select: { code: true },
+  })
+
+  let clauses: any[]
+
+  if (fw) {
+    const blobData = await getFrameworkFromBlob(fw.code)
+    if (blobData) {
+      clauses = blobData.clauses
+    } else {
+      clauses = await db.clause.findMany({
+        where: { frameworkId, parentId: null },
         include: {
-          controls: {
-            orderBy: { number: "asc" },
-          },
+          controls: { orderBy: { number: "asc" } },
           children: {
             orderBy: { sortOrder: "asc" },
             include: {
-              controls: {
-                orderBy: { number: "asc" },
+              controls: { orderBy: { number: "asc" } },
+              children: {
+                orderBy: { sortOrder: "asc" },
+                include: { controls: { orderBy: { number: "asc" } } },
               },
             },
           },
         },
-      },
-    },
-    orderBy: { sortOrder: "asc" },
-  })
+        orderBy: { sortOrder: "asc" },
+      })
+    }
+  } else {
+    clauses = []
+  }
 
-  // Flatten all assessable items (clauses with no children, or controls)
   type AssessableItem = {
     id: string
     type: "clause" | "control"
@@ -121,12 +161,8 @@ export async function getAssessmentItems(frameworkId: string) {
 
   const items: AssessableItem[] = []
 
-  function processClause(
-    clause: (typeof clauses)[number],
-    parentLabel?: string
-  ) {
-    const hasChildren =
-      ("children" in clause && (clause.children as unknown[])?.length > 0) || false
+  function processClause(clause: any, parentLabel?: string) {
+    const hasChildren = clause.children?.length > 0
     const hasControls = clause.controls?.length > 0
 
     if (hasControls) {
@@ -151,9 +187,9 @@ export async function getAssessmentItems(frameworkId: string) {
       })
     }
 
-    if ("children" in clause && Array.isArray(clause.children)) {
+    if (clause.children?.length > 0) {
       for (const child of clause.children) {
-        processClause(child as typeof clause, `${clause.number} ${clause.title}`)
+        processClause(child, `${clause.number} ${clause.title}`)
       }
     }
   }
