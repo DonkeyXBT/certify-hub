@@ -167,13 +167,14 @@ export async function saveAssessmentResponse(formData: FormData) {
 
   await validateOrgAccess(user.id, assessment.orgId)
 
-  // Auto-transition to IN_PROGRESS if still NOT_STARTED
-  if (assessment.status === "NOT_STARTED") {
+  // Auto-transition to IN_PROGRESS if NOT_STARTED or COMPLETED
+  if (assessment.status === "NOT_STARTED" || assessment.status === "COMPLETED") {
     await db.assessment.update({
       where: { id: assessmentId },
       data: {
         status: "IN_PROGRESS",
-        startDate: new Date(),
+        ...(assessment.status === "NOT_STARTED" && { startDate: new Date() }),
+        ...(assessment.status === "COMPLETED" && { endDate: null }),
       },
     })
   }
@@ -270,4 +271,39 @@ export async function completeAssessment(assessmentId: string) {
 
   revalidatePath(`/org/${assessment.org.slug}/assessments/${assessmentId}`)
   return { success: true, overallScore }
+}
+
+export async function reopenAssessment(assessmentId: string) {
+  const user = await getAuthenticatedUser()
+
+  const assessment = await db.assessment.findUnique({
+    where: { id: assessmentId },
+    select: {
+      id: true,
+      orgId: true,
+      status: true,
+      org: { select: { slug: true } },
+    },
+  })
+
+  if (!assessment) {
+    throw new Error("Assessment not found")
+  }
+
+  await validateOrgAccess(user.id, assessment.orgId)
+
+  if (assessment.status !== "COMPLETED") {
+    return { error: "Assessment is not completed" }
+  }
+
+  await db.assessment.update({
+    where: { id: assessmentId },
+    data: {
+      status: "IN_PROGRESS",
+      endDate: null,
+    },
+  })
+
+  revalidatePath(`/org/${assessment.org.slug}/assessments/${assessmentId}`)
+  return { success: true }
 }
