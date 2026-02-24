@@ -16,12 +16,37 @@ const COLUMNS = [
 
 type ColumnStatus = (typeof COLUMNS)[number]["id"]
 
+interface Member {
+  user: { id: string; name: string | null; email: string }
+}
+
+interface ControlImpl {
+  id: string
+  control: { number: string; title: string }
+}
+
+interface LinkOption {
+  id: string
+  title: string
+}
+
 interface KanbanBoardProps {
   initialTasks: KanbanTask[]
   orgSlug: string
+  members: Member[]
+  controls: ControlImpl[]
+  risks: LinkOption[]
+  capas: LinkOption[]
 }
 
-export function KanbanBoard({ initialTasks, orgSlug }: KanbanBoardProps) {
+export function KanbanBoard({
+  initialTasks,
+  orgSlug,
+  members,
+  controls,
+  risks,
+  capas,
+}: KanbanBoardProps) {
   const [tasks, setTasks] = useState(initialTasks)
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -74,6 +99,10 @@ export function KanbanBoard({ initialTasks, orgSlug }: KanbanBoardProps) {
     })
   }
 
+  function handleTaskDeleted(taskId: string) {
+    setTasks((prev) => prev.filter((t) => t.id !== taskId))
+  }
+
   const boardTasks = tasks.filter(
     (t) => t.status !== "CANCELLED" && t.status !== "OVERDUE"
   )
@@ -107,7 +136,13 @@ export function KanbanBoard({ initialTasks, orgSlug }: KanbanBoardProps) {
                   <TaskCard
                     key={task.id}
                     task={task}
+                    orgSlug={orgSlug}
+                    members={members}
+                    controls={controls}
+                    risks={risks}
+                    capas={capas}
                     onDragStart={handleDragStart}
+                    onTaskDeleted={handleTaskDeleted}
                   />
                 ))}
               </div>

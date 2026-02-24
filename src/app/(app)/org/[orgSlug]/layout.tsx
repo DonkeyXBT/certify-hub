@@ -5,6 +5,7 @@ import { getUserMembership, getUserOrganizations } from "@/lib/queries/organizat
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { AppHeader } from "@/components/layout/app-header"
+import { OrgBrandStyles } from "@/components/layout/org-brand-styles"
 
 export default async function OrgLayout({
   children,
@@ -28,10 +29,20 @@ export default async function OrgLayout({
 
   const userOrgs = await getUserOrganizations(session.user.id)
 
+  const settings = (org.settings as Record<string, unknown>) || {}
+  const primaryColor = (settings.primaryColor as string) || null
+  const appName = (settings.appName as string) || null
+
   return (
     <SidebarProvider>
+      <OrgBrandStyles primaryColor={primaryColor} />
       <AppSidebar
-        org={{ id: org.id, name: org.name, slug: org.slug, logo: org.logo }}
+        org={{
+          id: org.id,
+          name: appName || org.name,
+          slug: org.slug,
+          logo: org.logo,
+        }}
         userOrgs={userOrgs}
         userRole={membership.role}
         user={{

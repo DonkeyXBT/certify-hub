@@ -57,7 +57,14 @@ export default async function TasksPage({
         }
       />
 
-      <KanbanBoard initialTasks={tasks} orgSlug={orgSlug} />
+      <KanbanBoard
+        initialTasks={tasks}
+        orgSlug={orgSlug}
+        members={members}
+        controls={controlImpls}
+        risks={risks}
+        capas={capas}
+      />
     </div>
   )
 }

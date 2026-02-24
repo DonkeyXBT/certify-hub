@@ -12,6 +12,26 @@ export const createOrganizationSchema = z.object({
 
 export type CreateOrganizationInput = z.infer<typeof createOrganizationSchema>
 
+export const updateOrganizationSchema = z.object({
+  name: z
+    .string()
+    .min(2, "Organization name must be at least 2 characters")
+    .max(100, "Organization name must be at most 100 characters")
+    .trim(),
+  industry: z.string().optional(),
+  size: z.string().optional(),
+})
+
+export const brandingSchema = z.object({
+  primaryColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, "Must be a valid hex color")
+    .optional()
+    .or(z.literal("")),
+  appName: z.string().max(50).optional().or(z.literal("")),
+  logoUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+})
+
 export const INDUSTRY_OPTIONS = [
   { label: "Technology", value: "technology" },
   { label: "Healthcare", value: "healthcare" },

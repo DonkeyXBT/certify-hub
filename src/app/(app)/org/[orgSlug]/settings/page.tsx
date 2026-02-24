@@ -5,12 +5,10 @@ import { getOrganizationBySlug } from "@/lib/queries/organization"
 import { PageHeader } from "@/components/layout/page-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Building2, Users } from "lucide-react"
-import { format } from "date-fns"
+import { Building2, Users, Palette } from "lucide-react"
+import { GeneralSettingsForm } from "@/components/settings/general-settings-form"
+import { BrandingForm } from "@/components/settings/branding-form"
 
 export default async function SettingsPage({
   params,
@@ -23,6 +21,10 @@ export default async function SettingsPage({
 
   const org = await getOrganizationBySlug(orgSlug)
   if (!org) redirect("/onboarding")
+
+  const settings = (org.settings as Record<string, unknown>) || {}
+  const primaryColor = (settings.primaryColor as string) || null
+  const appName = (settings.appName as string) || null
 
   return (
     <div className="space-y-6">
@@ -37,6 +39,10 @@ export default async function SettingsPage({
             <Building2 className="mr-1.5 h-4 w-4" />
             General
           </TabsTrigger>
+          <TabsTrigger value="branding">
+            <Palette className="mr-1.5 h-4 w-4" />
+            Branding
+          </TabsTrigger>
           <TabsTrigger value="members">
             <Users className="mr-1.5 h-4 w-4" />
             Members
@@ -44,49 +50,24 @@ export default async function SettingsPage({
         </TabsList>
 
         <TabsContent value="general" className="mt-4 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Organization Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Organization Name</Label>
-                <Input id="name" defaultValue={org.name} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="slug">Slug</Label>
-                <Input id="slug" defaultValue={org.slug} disabled />
-                <p className="text-xs text-muted-foreground">
-                  The URL-friendly identifier for your organization. This cannot be changed.
-                </p>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="industry">Industry</Label>
-                  <Input
-                    id="industry"
-                    defaultValue={org.industry ?? ""}
-                    placeholder="e.g. Technology, Healthcare, Finance"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="size">Organization Size</Label>
-                  <Input
-                    id="size"
-                    defaultValue={org.size ?? ""}
-                    placeholder="e.g. 1-50, 51-200, 201-500"
-                  />
-                </div>
-              </div>
-              <Separator />
-              <div className="text-sm text-muted-foreground">
-                Created: {format(org.createdAt, "MMMM d, yyyy")}
-              </div>
-              <div className="flex items-center gap-3 pt-2">
-                <Button>Save Changes</Button>
-              </div>
-            </CardContent>
-          </Card>
+          <GeneralSettingsForm
+            orgId={org.id}
+            orgSlug={orgSlug}
+            name={org.name}
+            industry={org.industry}
+            size={org.size}
+            createdAt={org.createdAt}
+          />
+        </TabsContent>
+
+        <TabsContent value="branding" className="mt-4 space-y-6">
+          <BrandingForm
+            orgId={org.id}
+            orgSlug={orgSlug}
+            primaryColor={primaryColor}
+            appName={appName}
+            logoUrl={org.logo}
+          />
         </TabsContent>
 
         <TabsContent value="members" className="mt-4 space-y-6">

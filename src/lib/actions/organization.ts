@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { createOrganizationSchema } from "@/lib/validations/organization"
 import { redirect } from "next/navigation"
+import { revalidatePath } from "next/cache"
 
 function generateSlug(name: string): string {
   return name
@@ -73,4 +74,58 @@ export async function createOrganization(formData: FormData) {
   })
 
   redirect(`/org/${org.slug}`)
+}
+
+export async function updateOrganization(formData: FormData) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "Unauthorized" }
+
+  const orgId = formData.get("orgId") as string
+  const orgSlug = formData.get("orgSlug") as string
+  const name = (formData.get("name") as string)?.trim()
+  const industry = (formData.get("industry") as string)?.trim() || null
+  const size = (formData.get("size") as string)?.trim() || null
+
+  if (!name || name.length < 2) return { error: "Name must be at least 2 characters" }
+
+  await db.organization.update({
+    where: { id: orgId },
+    data: { name, industry, size },
+  })
+
+  revalidatePath(`/org/${orgSlug}/settings`)
+  return { success: true }
+}
+
+export async function updateBranding(formData: FormData) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "Unauthorized" }
+
+  const orgId = formData.get("orgId") as string
+  const orgSlug = formData.get("orgSlug") as string
+  const primaryColor = (formData.get("primaryColor") as string)?.trim() || null
+  const appName = (formData.get("appName") as string)?.trim() || null
+  const logoUrl = (formData.get("logoUrl") as string)?.trim() || null
+
+  const org = await db.organization.findUnique({
+    where: { id: orgId },
+    select: { settings: true },
+  })
+
+  const currentSettings = (org?.settings as Record<string, unknown>) || {}
+
+  await db.organization.update({
+    where: { id: orgId },
+    data: {
+      logo: logoUrl,
+      settings: {
+        ...currentSettings,
+        primaryColor,
+        appName,
+      },
+    },
+  })
+
+  revalidatePath(`/org/${orgSlug}`)
+  return { success: true }
 }

@@ -71,6 +71,9 @@ export async function updateTask(formData: FormData) {
   const priority = formData.get("priority") as string
   const assigneeId = formData.get("assigneeId") as string
   const dueDate = formData.get("dueDate") as string
+  const riskId = formData.get("riskId") as string
+  const controlImplementationId = formData.get("controlImplementationId") as string
+  const capaId = formData.get("capaId") as string
 
   if (!title?.trim()) return { error: "Title is required" }
 
@@ -82,6 +85,9 @@ export async function updateTask(formData: FormData) {
       priority: (priority as any) || "MEDIUM",
       assigneeId: assigneeId || null,
       dueDate: dueDate ? new Date(dueDate) : null,
+      riskId: riskId || null,
+      controlImplementationId: controlImplementationId || null,
+      capaId: capaId || null,
     },
   })
 
