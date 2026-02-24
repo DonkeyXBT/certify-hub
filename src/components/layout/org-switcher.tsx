@@ -29,9 +29,10 @@ interface UserOrgInfo extends OrgInfo {
 interface OrgSwitcherProps {
   currentOrg: OrgInfo
   userOrgs: UserOrgInfo[]
+  isSuperAdmin?: boolean
 }
 
-export function OrgSwitcher({ currentOrg, userOrgs }: OrgSwitcherProps) {
+export function OrgSwitcher({ currentOrg, userOrgs, isSuperAdmin }: OrgSwitcherProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -76,15 +77,19 @@ export function OrgSwitcher({ currentOrg, userOrgs }: OrgSwitcherProps) {
             </Link>
           </DropdownMenuItem>
         ))}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/onboarding?new=1" className="flex items-center gap-2">
-            <div className="flex size-6 items-center justify-center rounded-sm border bg-background">
-              <Plus className="size-3.5" />
-            </div>
-            <span>Create organization</span>
-          </Link>
-        </DropdownMenuItem>
+        {isSuperAdmin && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/onboarding?new=1" className="flex items-center gap-2">
+                <div className="flex size-6 items-center justify-center rounded-sm border bg-background">
+                  <Plus className="size-3.5" />
+                </div>
+                <span>Create organization</span>
+              </Link>
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )

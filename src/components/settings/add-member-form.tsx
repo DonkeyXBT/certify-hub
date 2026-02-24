@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useTransition } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,7 +24,6 @@ interface AddMemberFormProps {
 
 export function AddMemberForm({ orgId, orgSlug }: AddMemberFormProps) {
   const [isPending, startTransition] = useTransition()
-  const [showPassword, setShowPassword] = useState(false)
 
   function onAddExisting(formData: FormData) {
     startTransition(async () => {
@@ -45,7 +44,7 @@ export function AddMemberForm({ orgId, orgSlug }: AddMemberFormProps) {
       if (result?.error) {
         toast.error(result.error)
       } else {
-        toast.success("Account created and member added successfully")
+        toast.success("Account created — verification email sent")
         const form = document.getElementById("create-account-form") as HTMLFormElement
         form?.reset()
       }
@@ -53,18 +52,74 @@ export function AddMemberForm({ orgId, orgSlug }: AddMemberFormProps) {
   }
 
   return (
-    <Tabs defaultValue="existing" className="w-full">
+    <Tabs defaultValue="create" className="w-full">
       <TabsList>
-        <TabsTrigger value="existing">Add Existing User</TabsTrigger>
         <TabsTrigger value="create">Create New Account</TabsTrigger>
+        <TabsTrigger value="existing">Add Existing User</TabsTrigger>
       </TabsList>
+
+      <TabsContent value="create" className="mt-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Create New Account</CardTitle>
+            <CardDescription>
+              Create a new user account. They will receive a verification email to set their password.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form id="create-account-form" action={onCreateNew} className="space-y-4">
+              <input type="hidden" name="orgId" value={orgId} />
+              <input type="hidden" name="orgSlug" value={orgSlug} />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="create-name">Full Name</Label>
+                  <Input
+                    id="create-name"
+                    name="name"
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="create-email">Email Address</Label>
+                  <Input
+                    id="create-email"
+                    name="email"
+                    type="email"
+                    placeholder="user@company.com"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="create-role">Role</Label>
+                <Select name="role" defaultValue="VIEWER">
+                  <SelectTrigger id="create-role" className="w-full sm:w-[200px]">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ADMIN">Administrator</SelectItem>
+                    <SelectItem value="AUDITOR">Auditor</SelectItem>
+                    <SelectItem value="MANAGER">Manager</SelectItem>
+                    <SelectItem value="VIEWER">Viewer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button type="submit" disabled={isPending}>
+                <UserRoundPlus className="mr-2 h-4 w-4" />
+                {isPending ? "Creating..." : "Create Account & Send Invite"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </TabsContent>
 
       <TabsContent value="existing" className="mt-4">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Add Existing User</CardTitle>
             <CardDescription>
-              Add a user who already has an account to this organization.
+              Add a user who already has a verified account to this organization.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -100,84 +155,6 @@ export function AddMemberForm({ orgId, orgSlug }: AddMemberFormProps) {
               <Button type="submit" disabled={isPending}>
                 <UserPlus className="mr-2 h-4 w-4" />
                 {isPending ? "Adding..." : "Add Member"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="create" className="mt-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Create New Account</CardTitle>
-            <CardDescription>
-              Create a new user account and add them to this organization.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form id="create-account-form" action={onCreateNew} className="space-y-4">
-              <input type="hidden" name="orgId" value={orgId} />
-              <input type="hidden" name="orgSlug" value={orgSlug} />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="create-name">Full Name</Label>
-                  <Input
-                    id="create-name"
-                    name="name"
-                    placeholder="John Doe"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="create-email">Email Address</Label>
-                  <Input
-                    id="create-email"
-                    name="email"
-                    type="email"
-                    placeholder="user@company.com"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="create-password">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="create-password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Min. 6 characters"
-                      minLength={6}
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? "Hide" : "Show"}
-                    </button>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="create-role">Role</Label>
-                  <Select name="role" defaultValue="VIEWER">
-                    <SelectTrigger id="create-role" className="w-full">
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ADMIN">Administrator</SelectItem>
-                      <SelectItem value="AUDITOR">Auditor</SelectItem>
-                      <SelectItem value="MANAGER">Manager</SelectItem>
-                      <SelectItem value="VIEWER">Viewer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <Button type="submit" disabled={isPending}>
-                <UserRoundPlus className="mr-2 h-4 w-4" />
-                {isPending ? "Creating..." : "Create Account & Add"}
               </Button>
             </form>
           </CardContent>

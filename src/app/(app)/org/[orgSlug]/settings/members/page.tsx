@@ -26,6 +26,7 @@ import { format } from "date-fns"
 import { AddMemberForm } from "@/components/settings/add-member-form"
 import { MemberRoleSelect, RemoveMemberButton } from "@/components/settings/member-actions"
 import { RevokeInviteButton } from "@/components/settings/revoke-invite-button"
+import { ResendVerificationButton } from "@/components/settings/resend-verification-button"
 
 const roleColors: Record<string, string> = {
   ADMIN: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400",
@@ -68,6 +69,7 @@ export default async function MembersPage({
             name: true,
             email: true,
             image: true,
+            emailVerified: true,
           },
         },
       },
@@ -151,12 +153,30 @@ export default async function MembersPage({
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant="outline"
-                          className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400"
-                        >
-                          Active
-                        </Badge>
+                        {membership.user.emailVerified ? (
+                          <Badge
+                            variant="outline"
+                            className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400"
+                          >
+                            Active
+                          </Badge>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant="outline"
+                              className="bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400"
+                            >
+                              Pending Verification
+                            </Badge>
+                            {isAdmin && (
+                              <ResendVerificationButton
+                                email={membership.user.email}
+                                orgId={org.id}
+                                orgSlug={orgSlug}
+                              />
+                            )}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
                         {format(membership.createdAt, "MMM d, yyyy")}

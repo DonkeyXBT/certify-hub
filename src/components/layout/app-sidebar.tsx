@@ -57,6 +57,7 @@ interface AppSidebarProps {
   userOrgs: UserOrgInfo[]
   userRole: OrgRole
   user: UserInfo
+  isSuperAdmin?: boolean
 }
 
 const ROLE_HIERARCHY: Record<OrgRole, number> = {
@@ -81,14 +82,14 @@ function getInitials(name?: string): string {
     .slice(0, 2)
 }
 
-export function AppSidebar({ org, userOrgs, userRole, user }: AppSidebarProps) {
+export function AppSidebar({ org, userOrgs, userRole, user, isSuperAdmin }: AppSidebarProps) {
   const pathname = usePathname()
   const navGroups = getNavItems(org.slug)
 
   return (
     <Sidebar collapsible="icon" variant="sidebar">
       <SidebarHeader>
-        <OrgSwitcher currentOrg={org} userOrgs={userOrgs} />
+        <OrgSwitcher currentOrg={org} userOrgs={userOrgs} isSuperAdmin={isSuperAdmin} />
       </SidebarHeader>
       <SidebarSeparator />
       <SidebarContent>

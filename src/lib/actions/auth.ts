@@ -72,6 +72,19 @@ export async function loginUser(
   const { email, password } = parsed.data
 
   try {
+    // Check if user exists but hasn't verified their email
+    const user = await db.user.findUnique({
+      where: { email },
+      select: { emailVerified: true, hashedPassword: true },
+    })
+
+    if (user && !user.emailVerified) {
+      return {
+        success: false,
+        error: "Please verify your email first. Check your inbox for the verification link.",
+      }
+    }
+
     await signIn("credentials", {
       email,
       password,

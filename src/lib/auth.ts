@@ -72,10 +72,13 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
         if (!user || !user.hashedPassword) return null
 
+        // Block unverified users from logging in
+        if (!user.emailVerified) return null
+
         const isPasswordValid = await compare(password, user.hashedPassword)
         if (!isPasswordValid) return null
 
-        return { id: user.id, name: user.name, email: user.email, image: user.image }
+        return { id: user.id, name: user.name, email: user.email, image: user.image, isSuperAdmin: user.isSuperAdmin }
       },
     }),
   ],
@@ -83,12 +86,14 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
+        token.isSuperAdmin = (user as Record<string, unknown>).isSuperAdmin as boolean
       }
       return token
     },
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string
+        session.user.isSuperAdmin = (token.isSuperAdmin as boolean) ?? false
 
         const membership = await db.membership.findFirst({
           where: { userId: token.id as string, isActive: true },

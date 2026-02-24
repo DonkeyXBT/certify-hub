@@ -8,6 +8,7 @@ declare module "next-auth" {
       orgId?: string
       orgSlug?: string
       orgRole?: OrgRole
+      isSuperAdmin?: boolean
     } & DefaultSession["user"]
   }
 }
@@ -15,5 +16,6 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id?: string
+    isSuperAdmin?: boolean
   }
 }

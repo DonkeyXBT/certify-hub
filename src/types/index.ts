@@ -11,6 +11,7 @@ export interface SessionUser {
   orgId?: string
   orgSlug?: string
   orgRole?: OrgRole
+  isSuperAdmin?: boolean
 }
 
 // ─── Navigation ──────────────────────────────────────────────────────────────

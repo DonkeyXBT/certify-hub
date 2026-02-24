@@ -6,6 +6,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { AppHeader } from "@/components/layout/app-header"
 import { OrgBrandStyles } from "@/components/layout/org-brand-styles"
+import { db } from "@/lib/db"
 
 export default async function OrgLayout({
   children,
@@ -29,6 +30,11 @@ export default async function OrgLayout({
 
   const userOrgs = await getUserOrganizations(session.user.id)
 
+  const currentUser = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { isSuperAdmin: true },
+  })
+
   const settings = (org.settings as Record<string, unknown>) || {}
   const primaryColor = (settings.primaryColor as string) || null
   const appName = (settings.appName as string) || null
@@ -45,6 +51,7 @@ export default async function OrgLayout({
         }}
         userOrgs={userOrgs}
         userRole={membership.role}
+        isSuperAdmin={currentUser?.isSuperAdmin ?? false}
         user={{
           name: session.user.name ?? undefined,
           email: session.user.email ?? undefined,

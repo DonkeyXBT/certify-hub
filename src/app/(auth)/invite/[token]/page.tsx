@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
 
-export default function RegisterPage() {
+export default function InvitePage() {
   redirect("/login")
 }

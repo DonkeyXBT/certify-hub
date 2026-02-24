@@ -39,6 +39,15 @@ export async function createOrganization(formData: FormData) {
     throw new Error("Unauthorized")
   }
 
+  // Only super admins can create organizations
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { isSuperAdmin: true },
+  })
+  if (!user?.isSuperAdmin) {
+    return { error: "Only super admins can create organizations" }
+  }
+
   const rawData = {
     name: formData.get("name") as string,
     industry: formData.get("industry") as string,

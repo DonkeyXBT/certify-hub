@@ -8,13 +8,15 @@ export default auth((req) => {
   const { nextUrl } = req
   const isLoggedIn = !!req.auth
 
-  const isAuthPage =
-    nextUrl.pathname.startsWith("/login") ||
-    nextUrl.pathname.startsWith("/register")
+  const isAuthPage = nextUrl.pathname.startsWith("/login")
+  const isVerifyPage = nextUrl.pathname.startsWith("/verify")
   const isApiRoute = nextUrl.pathname.startsWith("/api")
   const isPublicPage = nextUrl.pathname === "/"
 
   if (isApiRoute) return NextResponse.next()
+
+  // Verification pages are always accessible (no redirect for logged-in users)
+  if (isVerifyPage) return NextResponse.next()
 
   if (isAuthPage) {
     if (isLoggedIn) return NextResponse.redirect(new URL("/onboarding", nextUrl))

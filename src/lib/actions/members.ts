@@ -5,6 +5,8 @@ import { db } from "@/lib/db"
 import { hash } from "bcryptjs"
 import { revalidatePath } from "next/cache"
 import type { OrgRole } from "@prisma/client"
+import { sendVerificationEmail } from "@/lib/email"
+import { randomUUID } from "crypto"
 
 async function requireAdmin(orgId: string) {
   const session = await auth()
@@ -36,7 +38,7 @@ export async function addUserToOrg(formData: FormData) {
   // Find the user by email
   const user = await db.user.findUnique({ where: { email } })
   if (!user) {
-    return { error: `No user found with email "${email}". They must register first.` }
+    return { error: `No user found with email "${email}". Use "Create New Account" to create one.` }
   }
 
   // Check if already a member
@@ -74,16 +76,11 @@ export async function createUserAndAddToOrg(formData: FormData) {
   const orgId = formData.get("orgId") as string
   const email = formData.get("email") as string
   const name = formData.get("name") as string
-  const password = formData.get("password") as string
   const role = formData.get("role") as OrgRole
   const orgSlug = formData.get("orgSlug") as string
 
-  if (!orgId || !email || !name || !password || !role) {
+  if (!orgId || !email || !name || !role) {
     return { error: "All fields are required" }
-  }
-
-  if (password.length < 6) {
-    return { error: "Password must be at least 6 characters" }
   }
 
   await requireAdmin(orgId)
@@ -94,13 +91,11 @@ export async function createUserAndAddToOrg(formData: FormData) {
     return { error: `A user with email "${email}" already exists. Use "Add Existing Member" instead.` }
   }
 
-  const hashedPassword = await hash(password, 12)
-
+  // Create user without password — they'll set it during verification
   const user = await db.user.create({
     data: {
       name,
       email,
-      hashedPassword,
     },
   })
 
@@ -113,43 +108,140 @@ export async function createUserAndAddToOrg(formData: FormData) {
     },
   })
 
+  // Create a verification token (7-day expiry)
+  const token = randomUUID()
+  await db.verificationToken.create({
+    data: {
+      identifier: email,
+      token,
+      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+  })
+
+  // Get org name for the email
+  const org = await db.organization.findUnique({
+    where: { id: orgId },
+    select: { name: true },
+  })
+
+  // Send verification email
+  const baseUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL || "http://localhost:3000"
+  const verifyUrl = `${baseUrl}/verify/${token}`
+
+  await sendVerificationEmail({
+    to: email,
+    name,
+    orgName: org?.name ?? "your organization",
+    verifyUrl,
+  })
+
   revalidatePath(`/org/${orgSlug}/settings/members`)
   return { success: true }
 }
 
-export async function inviteMember(formData: FormData) {
+export async function verifyEmailAndSetPassword(formData: FormData) {
+  const token = formData.get("token") as string
+  const password = formData.get("password") as string
+
+  if (!token || !password) {
+    return { error: "All fields are required" }
+  }
+
+  if (password.length < 6) {
+    return { error: "Password must be at least 6 characters" }
+  }
+
+  const verificationToken = await db.verificationToken.findUnique({
+    where: { token },
+  })
+
+  if (!verificationToken) {
+    return { error: "Invalid or expired verification link" }
+  }
+
+  if (verificationToken.expires < new Date()) {
+    // Clean up expired token
+    await db.verificationToken.delete({ where: { token } })
+    return { error: "This verification link has expired. Please contact your administrator." }
+  }
+
+  const user = await db.user.findUnique({
+    where: { email: verificationToken.identifier },
+  })
+
+  if (!user) {
+    return { error: "User not found" }
+  }
+
+  if (user.emailVerified) {
+    // Already verified — clean up token
+    await db.verificationToken.delete({ where: { token } })
+    return { error: "This account has already been verified. Please log in." }
+  }
+
+  const hashedPassword = await hash(password, 12)
+
+  await db.user.update({
+    where: { id: user.id },
+    data: {
+      hashedPassword,
+      emailVerified: new Date(),
+    },
+  })
+
+  // Clean up the used token
+  await db.verificationToken.delete({ where: { token } })
+
+  return { success: true }
+}
+
+export async function resendVerificationEmail(formData: FormData) {
   const orgId = formData.get("orgId") as string
   const email = formData.get("email") as string
-  const role = formData.get("role") as OrgRole
   const orgSlug = formData.get("orgSlug") as string
 
-  if (!orgId || !email || !role) {
-    return { error: "All fields are required" }
+  if (!orgId || !email) {
+    return { error: "Missing required fields" }
   }
 
   await requireAdmin(orgId)
 
-  const existingMember = await db.membership.findFirst({
-    where: { orgId, user: { email }, isActive: true },
-  })
-  if (existingMember) return { error: "User is already a member" }
+  const user = await db.user.findUnique({ where: { email } })
+  if (!user) return { error: "User not found" }
+  if (user.emailVerified) return { error: "User is already verified" }
 
-  const existingInvite = await db.invitation.findFirst({
-    where: { orgId, email, status: "PENDING" },
+  // Delete any existing tokens for this user
+  await db.verificationToken.deleteMany({
+    where: { identifier: email },
   })
-  if (existingInvite) return { error: "Invitation already pending for this email" }
 
-  const invitation = await db.invitation.create({
+  // Create a new verification token
+  const token = randomUUID()
+  await db.verificationToken.create({
     data: {
-      orgId,
-      email,
-      role,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      identifier: email,
+      token,
+      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     },
   })
 
+  const org = await db.organization.findUnique({
+    where: { id: orgId },
+    select: { name: true },
+  })
+
+  const baseUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL || "http://localhost:3000"
+  const verifyUrl = `${baseUrl}/verify/${token}`
+
+  await sendVerificationEmail({
+    to: email,
+    name: user.name ?? "there",
+    orgName: org?.name ?? "your organization",
+    verifyUrl,
+  })
+
   revalidatePath(`/org/${orgSlug}/settings/members`)
-  return { success: true, token: invitation.token }
+  return { success: true }
 }
 
 export async function updateMemberRole(formData: FormData) {
@@ -242,41 +334,4 @@ export async function revokeInvitation(formData: FormData) {
 
   revalidatePath(`/org/${orgSlug}/settings/members`)
   return { success: true }
-}
-
-export async function acceptInvitation(token: string) {
-  const session = await auth()
-  if (!session?.user?.id) return { error: "Unauthorized" }
-
-  const invitation = await db.invitation.findUnique({ where: { token } })
-  if (!invitation) return { error: "Invalid invitation" }
-  if (invitation.status !== "PENDING") return { error: "Invitation is no longer valid" }
-  if (invitation.expiresAt < new Date()) return { error: "Invitation has expired" }
-
-  // Check if the user's email matches the invitation
-  const user = await db.user.findUnique({ where: { id: session.user.id } })
-  if (!user || user.email !== invitation.email) {
-    return { error: "This invitation was sent to a different email address" }
-  }
-
-  await db.membership.create({
-    data: {
-      userId: session.user.id,
-      orgId: invitation.orgId,
-      role: invitation.role,
-      isActive: true,
-    },
-  })
-
-  await db.invitation.update({
-    where: { id: invitation.id },
-    data: { status: "ACCEPTED" },
-  })
-
-  const org = await db.organization.findUnique({
-    where: { id: invitation.orgId },
-    select: { slug: true },
-  })
-
-  return { success: true, orgSlug: org?.slug }
 }
