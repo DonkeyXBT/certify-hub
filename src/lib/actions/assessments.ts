@@ -177,6 +177,22 @@ export async function saveAssessmentResponse(formData: FormData) {
         ...(assessment.status === "COMPLETED" && { endDate: null }),
       },
     })
+
+    // Auto-generate certification tasks on first activation only
+    if (assessment.status === "NOT_STARTED") {
+      const assessmentWithFramework = await db.assessment.findUnique({
+        where: { id: assessmentId },
+        select: { framework: { select: { code: true } } },
+      })
+      if (assessmentWithFramework?.framework.code) {
+        const { generateAssessmentTasks } = await import("./assessment-tasks")
+        await generateAssessmentTasks(
+          assessmentId,
+          assessment.orgId,
+          assessmentWithFramework.framework.code
+        )
+      }
+    }
   }
 
   // Upsert the response — find existing by assessment + clause/control/requirement

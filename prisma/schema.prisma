@@ -450,6 +450,7 @@ model Assessment {
   framework Framework    @relation(fields: [frameworkId], references: [id])
 
   responses AssessmentResponse[]
+  tasks     Task[]
 
   @@index([orgId])
   @@index([frameworkId])
@@ -738,6 +739,7 @@ model Task {
   riskId                  String?
   controlImplementationId String?
   capaId                  String?
+  assessmentId            String?
   createdAt               DateTime     @default(now())
   updatedAt               DateTime     @updatedAt
   deletedAt               DateTime?
@@ -748,10 +750,12 @@ model Task {
   risk                  Risk?                 @relation(fields: [riskId], references: [id])
   controlImplementation ControlImplementation? @relation(fields: [controlImplementationId], references: [id])
   capa                  CAPA?                 @relation(fields: [capaId], references: [id])
+  assessment            Assessment?           @relation(fields: [assessmentId], references: [id])
 
   @@index([orgId])
   @@index([assigneeId])
   @@index([status])
+  @@index([assessmentId])
 }
 
 // ─── Statement of Applicability ──────────────────────────────────────────────

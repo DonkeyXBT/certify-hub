@@ -18,6 +18,7 @@ export async function createTask(formData: FormData) {
   const riskId = formData.get("riskId") as string
   const controlImplementationId = formData.get("controlImplementationId") as string
   const capaId = formData.get("capaId") as string
+  const assessmentId = formData.get("assessmentId") as string
 
   if (!title?.trim()) return { error: "Title is required" }
 
@@ -33,6 +34,7 @@ export async function createTask(formData: FormData) {
       riskId: riskId || null,
       controlImplementationId: controlImplementationId || null,
       capaId: capaId || null,
+      assessmentId: assessmentId || null,
     },
   })
 
