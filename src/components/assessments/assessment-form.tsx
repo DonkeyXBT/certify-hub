@@ -31,7 +31,7 @@ export function AssessmentForm({ orgId, orgSlug, frameworks }: AssessmentFormPro
     startTransition(async () => {
       const result = await createAssessment(orgSlug, formData)
       if (result?.error) {
-        toast.error(result.error)
+        toast.error(typeof result.error === "string" ? result.error : "Validation failed. Please check your inputs.")
       }
     })
   }
