@@ -45,6 +45,7 @@ interface CreateTaskDialogProps {
   controls: ControlImpl[]
   risks: LinkOption[]
   capas: LinkOption[]
+  assessmentId?: string
 }
 
 export function CreateTaskDialog({
@@ -54,6 +55,7 @@ export function CreateTaskDialog({
   controls,
   risks,
   capas,
+  assessmentId,
 }: CreateTaskDialogProps) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -88,6 +90,7 @@ export function CreateTaskDialog({
         <form action={onSubmit} className="space-y-4">
           <input type="hidden" name="orgId" value={orgId} />
           <input type="hidden" name="orgSlug" value={orgSlug} />
+          {assessmentId && <input type="hidden" name="assessmentId" value={assessmentId} />}
 
           <div className="space-y-2">
             <Label htmlFor="task-title">Title *</Label>

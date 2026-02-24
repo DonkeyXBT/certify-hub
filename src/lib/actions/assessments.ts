@@ -301,6 +301,43 @@ export async function completeAssessment(assessmentId: string) {
   return { success: true, overallScore }
 }
 
+export async function deleteAssessment(assessmentId: string) {
+  const user = await getAuthenticatedUser()
+
+  const assessment = await db.assessment.findUnique({
+    where: { id: assessmentId },
+    select: {
+      id: true,
+      orgId: true,
+      org: { select: { slug: true } },
+    },
+  })
+
+  if (!assessment) {
+    return { error: "Assessment not found" }
+  }
+
+  const membership = await validateOrgAccess(user.id, assessment.orgId)
+
+  if (!["ADMIN", "MANAGER"].includes(membership.role)) {
+    return { error: "Unauthorized: Insufficient permissions" }
+  }
+
+  // Soft-delete all linked tasks
+  await db.task.updateMany({
+    where: { assessmentId, deletedAt: null },
+    data: { deletedAt: new Date() },
+  })
+
+  // Hard-delete the assessment (responses cascade automatically)
+  await db.assessment.delete({
+    where: { id: assessmentId },
+  })
+
+  revalidatePath(`/org/${assessment.org.slug}/assessments`)
+  redirect(`/org/${assessment.org.slug}/assessments`)
+}
+
 export async function reopenAssessment(assessmentId: string) {
   const user = await getAuthenticatedUser()
 
