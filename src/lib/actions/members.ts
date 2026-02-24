@@ -2,6 +2,7 @@
 
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { hash } from "bcryptjs"
 import { revalidatePath } from "next/cache"
 import type { OrgRole } from "@prisma/client"
 
@@ -55,6 +56,53 @@ export async function addUserToOrg(formData: FormData) {
     revalidatePath(`/org/${orgSlug}/settings/members`)
     return { success: true }
   }
+
+  await db.membership.create({
+    data: {
+      userId: user.id,
+      orgId,
+      role,
+      isActive: true,
+    },
+  })
+
+  revalidatePath(`/org/${orgSlug}/settings/members`)
+  return { success: true }
+}
+
+export async function createUserAndAddToOrg(formData: FormData) {
+  const orgId = formData.get("orgId") as string
+  const email = formData.get("email") as string
+  const name = formData.get("name") as string
+  const password = formData.get("password") as string
+  const role = formData.get("role") as OrgRole
+  const orgSlug = formData.get("orgSlug") as string
+
+  if (!orgId || !email || !name || !password || !role) {
+    return { error: "All fields are required" }
+  }
+
+  if (password.length < 6) {
+    return { error: "Password must be at least 6 characters" }
+  }
+
+  await requireAdmin(orgId)
+
+  // Check if email already exists
+  const existingUser = await db.user.findUnique({ where: { email } })
+  if (existingUser) {
+    return { error: `A user with email "${email}" already exists. Use "Add Existing Member" instead.` }
+  }
+
+  const hashedPassword = await hash(password, 12)
+
+  const user = await db.user.create({
+    data: {
+      name,
+      email,
+      hashedPassword,
+    },
+  })
 
   await db.membership.create({
     data: {
