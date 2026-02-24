@@ -1,23 +1,35 @@
-# CertifyHub
+<p align="center">
+  <h1 align="center">CertifyHub</h1>
+  <p align="center">
+    Open-source Governance, Risk & Compliance platform for managing multi-framework certification journeys.
+    <br />
+    <strong>ISO 27001 &middot; ISO 9001 &middot; SOC 2 &middot; GDPR &middot; HIPAA &middot; NIST CSF &middot; PCI DSS &middot; NIS2 &middot; DORA &middot; ISO 22301</strong>
+  </p>
+</p>
 
-A multi-tenant Governance, Risk & Compliance (GRC) platform for managing ISO certification journeys. Built with Next.js, Prisma, and PostgreSQL.
-
-CertifyHub guides organisations through the full Plan-Do-Check-Act (PDCA) cycle for ISO standards — from initial gap assessment through control implementation, evidence collection, internal audits, and continuous improvement.
+<p align="center">
+  <a href="#getting-started">Getting Started</a> &middot;
+  <a href="#features">Features</a> &middot;
+  <a href="#supported-frameworks">Frameworks</a> &middot;
+  <a href="#tech-stack">Tech Stack</a> &middot;
+  <a href="#architecture">Architecture</a> &middot;
+  <a href="#roadmap">Roadmap</a>
+</p>
 
 ---
 
-## Table of Contents
+## Why CertifyHub?
 
-- [Getting Started](#getting-started)
-- [Demo Accounts](#demo-accounts)
-- [How It Works](#how-it-works)
-- [Step-by-Step: Your First ISO Framework](#step-by-step-your-first-iso-framework)
-- [Feature Guide](#feature-guide)
-- [Roles & Permissions](#roles--permissions)
-- [Architecture](#architecture)
-- [Planned Features](#planned-features)
-- [Upcoming Frameworks](#upcoming-frameworks)
-- [Tech Stack](#tech-stack)
+Most GRC tools are expensive, bloated, and locked behind enterprise sales calls. CertifyHub is different — it's open-source, self-hostable, and built for teams that want a clean, modern compliance workflow without the overhead.
+
+CertifyHub follows the **Plan-Do-Check-Act (PDCA)** cycle at its core:
+
+| Phase | What you do |
+|-------|-------------|
+| **Plan** | Browse frameworks, run gap assessments, register risks |
+| **Do** | Implement controls, assign tasks, upload evidence |
+| **Check** | Conduct internal audits, review the SoA, track compliance |
+| **Act** | Raise CAPAs for findings, close out issues, iterate |
 
 ---
 
@@ -25,263 +37,130 @@ CertifyHub guides organisations through the full Plan-Do-Check-Act (PDCA) cycle 
 
 ### Prerequisites
 
-- Node.js 18+
-- PostgreSQL 14+
-- npm, yarn, or pnpm
+- **Node.js** 18+
+- **PostgreSQL** 14+
+- **npm**, **yarn**, or **pnpm**
 
-### Installation
+### Quick Start
 
 ```bash
+# Clone and install
 git clone https://github.com/DonkeyXBT/certify-hub.git
 cd certify-hub
 npm install
-```
 
-### Environment Setup
-
-Copy the example env file and fill in your values:
-
-```bash
+# Configure environment
 cp .env.example .env
-```
+# Edit .env with your database URL and auth secret
 
-Required environment variables:
-
-```env
-DATABASE_URL="postgresql://user:password@localhost:5432/certifyhub"
-AUTH_SECRET="your-random-secret-here"       # Generate with: openssl rand -base64 32
-AUTH_URL="http://localhost:3000"
-```
-
-### Database Setup
-
-```bash
-# Create the database tables
+# Set up database
 npx prisma db push
-
-# Seed with ISO frameworks + demo accounts
 npx prisma db seed
-```
 
-### Run the Development Server
-
-```bash
+# Start development server
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to get started.
+Open [http://localhost:3000](http://localhost:3000) and sign in with a demo account.
+
+### Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `DATABASE_URL` | PostgreSQL connection string | Yes |
+| `AUTH_SECRET` | Random secret for session signing (`openssl rand -base64 32`) | Yes |
+| `AUTH_URL` | Application URL (e.g. `http://localhost:3000`) | Yes |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token for framework data caching | No |
+
+### Demo Accounts
+
+All demo users belong to the seeded "Acme Corp" organisation:
+
+| Email | Password | Role |
+|-------|----------|------|
+| `admin@example.com` | `password123` | Admin — full access |
+| `manager@example.com` | `password123` | Manager — risks, tasks, documents, CAPAs |
+| `auditor@example.com` | `password123` | Auditor — read-only + audit management |
+| `viewer@example.com` | `password123` | Viewer — read-only |
 
 ---
 
-## Demo Accounts
+## Features
 
-The seed script creates four demo users, all belonging to the "Acme Corp" organisation:
+### Compliance Management
+- **Framework browser** — Hierarchical clause trees with full control listings for 10 frameworks
+- **Gap assessments** — Structured assessments with maturity scoring and gap analysis
+- **Statement of Applicability** — Central register of control applicability and implementation status
+- **Compliance tracking** — Real-time compliance percentage per framework
 
-| Email | Password | Role | Access Level |
-|-------|----------|------|-------------|
-| `admin@example.com` | `password123` | Admin | Full access — manage members, settings, all modules |
-| `auditor@example.com` | `password123` | Auditor | Read-only across all modules, manage audits |
-| `manager@example.com` | `password123` | Manager | Manage risks, tasks, documents, CAPAs |
-| `viewer@example.com` | `password123` | Viewer | Read-only access to all modules |
+### Risk Management
+- **Risk register** — Full risk lifecycle from identification through treatment
+- **5x5 risk matrix** — Likelihood/impact scoring with inherent, residual, and target risk levels
+- **Treatment plans** — Mitigate, accept, transfer, or avoid with documented rationale
+- **Control mapping** — Link risks to control implementations for traceability
 
----
+### Task Management
+- **Kanban board** — Drag-and-drop board with To Do, In Progress, In Review, and Done columns
+- **Traceability** — Link tasks to controls, risks, or CAPAs
+- **Priority and assignment** — Priority levels, assignees, and due dates
 
-## How It Works
+### Audit Management
+- **Audit planning** — Create audit programs with scope, objectives, and team assignment
+- **Findings management** — Record findings with severity levels and track through to closure
+- **CAPA integration** — Raise corrective/preventive actions directly from audit findings
 
-CertifyHub follows the **Plan-Do-Check-Act (PDCA)** cycle, the backbone of every ISO management system:
+### Document & Evidence Management
+- **Document library** — Upload and categorize policies, procedures, records, and forms
+- **Evidence collection** — Attach evidence artifacts to control implementations
+- **Approval workflows** — Document review and approval tracking
 
-```
-        ┌─────────────────────────────────────────────┐
-        │                                             │
-   ┌────▼────┐    ┌─────────┐    ┌───────┐    ┌─────┴───┐
-   │  PLAN   │───▶│   DO    │───▶│ CHECK │───▶│   ACT   │
-   │         │    │         │    │       │    │         │
-   │ Gap     │    │ Implement│   │ Audit │    │ CAPA    │
-   │ Assess  │    │ Controls │   │ Review│    │ Improve │
-   │ Risk ID │    │ Evidence │   │ Assess│    │ Iterate │
-   └─────────┘    └─────────┘    └───────┘    └─────────┘
-```
+### Training Management
+- **Training programs** — Create and manage training programs with descriptions and requirements
+- **User assignment** — Assign training to specific users with status tracking
+- **Completion tracking** — Track progress across the organisation
 
-1. **PLAN** — Browse your chosen ISO framework, run a gap assessment to identify where you stand, and register risks.
-2. **DO** — Implement controls mapped to framework clauses, assign tasks to your team, upload evidence documents.
-3. **CHECK** — Conduct internal audits, review the Statement of Applicability (SoA), and track compliance progress.
-4. **ACT** — Raise CAPAs (Corrective and Preventive Actions) for non-conformities, close out findings, and continuously improve.
-
----
-
-## Step-by-Step: Your First ISO Framework
-
-Here is how to take your organisation from zero to audit-ready using CertifyHub:
-
-### Step 1: Sign Up and Create Your Organisation
-
-1. Navigate to the login page and sign in (or use a demo account).
-2. On first login, you'll land on the onboarding page. Enter your organisation name and slug.
-3. You'll be taken to your organisation dashboard.
-
-### Step 2: Add Team Members
-
-1. Go to **Settings > Members** from the sidebar.
-2. As an Admin, use the "Add Member" form to invite colleagues by email.
-3. Assign each person an appropriate role (Admin, Manager, Auditor, or Viewer).
-
-### Step 3: Browse Available Frameworks
-
-1. Click **Frameworks** in the sidebar.
-2. You'll see published frameworks (ISO 27001:2022 and ISO 9001:2015 are pre-seeded).
-3. Each card shows the number of clauses, controls, and your current compliance percentage.
-
-### Step 4: Explore a Framework
-
-1. Click on a framework card to see its detail page.
-2. The **Clauses** tab shows the hierarchical clause structure (e.g. Clause 4 > 4.1 > 4.1.1).
-3. The **Controls** tab lists all controls with their descriptions and implementation guidance.
-4. The compliance progress bar at the top shows your overall status.
-
-### Step 5: Run a Gap Assessment
-
-1. Go to **Assessments** in the sidebar.
-2. Click **New Assessment** and select the framework.
-3. Walk through the assessment wizard — for each control, rate your current maturity level and add notes.
-4. Submit the assessment to see your gap analysis results and charts.
-
-### Step 6: Review the Statement of Applicability (SoA)
-
-1. Navigate to **Statement of Applicability** in the sidebar.
-2. The SoA lists every control with its applicability status and implementation status.
-3. Mark controls as applicable or not applicable with justification.
-4. Track implementation status: Not Implemented, Partially Implemented, or Fully Implemented.
-
-### Step 7: Identify and Register Risks
-
-1. Go to **Risks** in the sidebar.
-2. Click **Add Risk** to register a risk.
-3. Fill in: title, description, category, likelihood (1-5), impact (1-5).
-4. The risk score is calculated automatically (likelihood x impact).
-5. Set a treatment plan: Mitigate, Accept, Transfer, or Avoid.
-6. Link the risk to relevant controls from the SoA.
-
-### Step 8: Create and Assign Tasks
-
-1. Go to **Tasks** in the sidebar.
-2. The Kanban board shows four columns: To Do, In Progress, In Review, and Done.
-3. Click **Add Task** to create a new task.
-4. Fill in: title, description, priority, assignee, due date.
-5. Optionally link the task to a specific control, risk, or CAPA.
-6. Drag cards between columns to update status.
-
-### Step 9: Implement Controls
-
-1. From the SoA or framework detail page, select a control to implement.
-2. Update its implementation status as you make progress.
-3. Link tasks to the control so your team knows what work is required.
-4. Watch your compliance percentage climb on the framework page.
-
-### Step 10: Upload Evidence Documents
-
-1. Go to **Documents** in the sidebar.
-2. Upload policies, procedures, records, and other evidence.
-3. Categorise documents (Policy, Procedure, Record, Form, Guide, etc.).
-4. Link documents to specific controls as evidence of implementation.
-
-### Step 11: Conduct Internal Audits
-
-1. Navigate to **Audits** in the sidebar.
-2. Create a new audit, selecting the scope (which clauses/controls to audit).
-3. Assign auditors and set the audit schedule.
-4. During the audit, record findings: conformity, minor non-conformity, major non-conformity, or observation.
-5. Review audit results and generate findings reports.
-
-### Step 12: Raise CAPAs for Findings
-
-1. Go to **CAPAs** in the sidebar.
-2. Click **New CAPA** to create a Corrective or Preventive Action.
-3. Link it to the audit finding or risk that triggered it.
-4. Define root cause, planned actions, and target completion date.
-5. Assign the CAPA to a team member and track progress.
-
-### Step 13: Track Training
-
-1. Navigate to **Training** in the sidebar.
-2. Record training requirements for ISO awareness and specific controls.
-3. Track who has completed training and who needs reminders.
-4. Link training records to compliance requirements.
-
-### Step 14: Monitor Your Dashboard
-
-1. Return to the **Dashboard** to see your compliance overview.
-2. Review widgets: compliance scores, overdue tasks, upcoming audits, risk summary.
-3. Use the **Reports** page to generate compliance reports and trend analyses.
-4. Iterate through the PDCA cycle as your organisation matures.
+### Organisation & Access
+- **Multi-tenancy** — Full org isolation with slug-based routing
+- **Role-based access** — Admin, Manager, Auditor, and Viewer roles with granular permissions
+- **Audit logging** — All significant actions tracked for compliance traceability
+- **Dashboard** — Overview widgets for compliance status, tasks, risks, and upcoming deadlines
 
 ---
 
-## Feature Guide
+## Supported Frameworks
 
-### Dashboard
-The main overview page with widgets showing compliance status at a glance, recent activity, upcoming deadlines, risk heat maps, and task summaries.
+The seed script includes full clause hierarchies and controls for all 10 frameworks:
 
-### Frameworks
-Browse published ISO frameworks with their full clause hierarchies and control lists. Each framework shows your organisation's compliance percentage based on control implementation status.
-
-### Assessments
-Run structured gap assessments against a framework. The assessment wizard walks you through each control, letting you rate maturity levels. Results include gap analysis charts and scoring summaries.
-
-### Statement of Applicability (SoA)
-The central register of all controls, their applicability to your organisation, and their implementation status. This is a key ISO deliverable required for certification audits.
-
-### Risks
-Full risk register with likelihood/impact scoring (5x5 matrix), risk categories, treatment plans, and linkage to controls. Supports the risk-based thinking required by ISO standards.
-
-### Tasks (Kanban Board)
-Visual task management with drag-and-drop Kanban board. Tasks can be linked to controls, risks, or CAPAs to maintain traceability. Supports priority levels, assignees, and due dates.
-
-### Documents
-Document management system for policies, procedures, records, and forms. Supports file uploads with metadata, categorisation, and linking to controls as evidence.
-
-### Audits
-Plan and conduct internal audits. Create audit programs, assign auditors, record findings, and track non-conformities through to closure.
-
-### CAPAs (Corrective & Preventive Actions)
-Manage corrective and preventive actions arising from audit findings, incidents, or risk assessments. Track root cause analysis, planned actions, and verification of effectiveness.
-
-### Evidence
-Attach evidence artifacts to controls, showing proof of implementation. Evidence can include documents, screenshots, configuration exports, and other records.
-
-### Training
-Track training requirements and completions. Ensure personnel are competent and aware of their roles in the management system.
-
-### Reports
-Generate compliance reports, trend analyses, and management review inputs. Visualise progress over time with charts and summaries.
-
-### Settings
-Organisation settings, member management (add/remove users, assign roles), and configuration. Only accessible to Admin users.
-
-### Organisation Switching
-Users can belong to multiple organisations and switch between them seamlessly. Admins can create new organisations at any time.
-
-### Audit Logging
-All significant actions are logged for traceability — a requirement for ISO management systems. Logs capture who did what, when, and what changed.
+| Framework | Standard | Controls |
+|-----------|----------|----------|
+| **ISO 27001:2022** | Information security management | 93 Annex A controls |
+| **ISO 9001:2015** | Quality management | Clause-based requirements |
+| **ISO 22301:2019** | Business continuity management | Full clause structure |
+| **SOC 2 Type II** | Trust services criteria | Security, Availability, Processing Integrity, Confidentiality, Privacy |
+| **GDPR** | EU data protection regulation | Articles and recitals |
+| **NIS2** | EU network and information security | Directive requirements |
+| **HIPAA** | US health information privacy | Administrative, physical, and technical safeguards |
+| **PCI DSS v4.0** | Payment card security | 12 requirement areas |
+| **NIST CSF 2.0** | Cybersecurity framework | Govern, Identify, Protect, Detect, Respond, Recover |
+| **DORA** | EU digital operational resilience | ICT risk management requirements |
 
 ---
 
-## Roles & Permissions
+## Tech Stack
 
-| Permission | Admin | Manager | Auditor | Viewer |
-|-----------|-------|---------|---------|--------|
-| View dashboard & reports | Yes | Yes | Yes | Yes |
-| Browse frameworks | Yes | Yes | Yes | Yes |
-| View assessments & SoA | Yes | Yes | Yes | Yes |
-| Run assessments | Yes | Yes | No | No |
-| Update SoA | Yes | Yes | No | No |
-| Manage risks | Yes | Yes | No | No |
-| Create & manage tasks | Yes | Yes | No | No |
-| Upload documents | Yes | Yes | No | No |
-| Conduct audits | Yes | No | Yes | No |
-| Manage CAPAs | Yes | Yes | No | No |
-| Manage members | Yes | No | No | No |
-| Organisation settings | Yes | No | No | No |
-| Create organisations | Yes | No | No | No |
+| Layer | Technology |
+|-------|-----------|
+| **Framework** | [Next.js 16](https://nextjs.org/) (App Router, Server Actions) |
+| **Language** | TypeScript (strict) |
+| **Database** | PostgreSQL 14+ |
+| **ORM** | [Prisma](https://www.prisma.io/) (26 models, 20+ enums) |
+| **Auth** | [NextAuth v5](https://authjs.dev/) (JWT strategy, Prisma adapter, credentials provider) |
+| **UI** | [shadcn/ui](https://ui.shadcn.com/) + [Radix UI](https://www.radix-ui.com/) |
+| **Styling** | [Tailwind CSS v4](https://tailwindcss.com/) |
+| **Forms** | React Hook Form + Zod validation |
+| **Charts** | [Recharts](https://recharts.org/) |
+| **Storage** | [Vercel Blob](https://vercel.com/docs/storage/vercel-blob) (framework data caching) |
+| **Icons** | [Lucide React](https://lucide.dev/) |
 
 ---
 
@@ -290,167 +169,113 @@ All significant actions are logged for traceability — a requirement for ISO ma
 ```
 certify-hub/
 ├── prisma/
-│   ├── schema.prisma          # 26 models, 20+ enums
-│   └── seed/                  # ISO framework data + demo accounts
-│       ├── index.ts
-│       ├── demo-data.ts
-│       ├── iso27001.ts        # ISO 27001:2022 (93 Annex A controls)
-│       └── iso9001.ts         # ISO 9001:2015 clauses & controls
+│   ├── schema.prisma              # 26 models, 20+ enums
+│   └── seed/                      # Framework data + demo accounts
+│       ├── index.ts               # Seed orchestrator + Blob upload
+│       ├── demo-data.ts           # Demo users and org
+│       ├── iso27001-clauses.ts    # ISO 27001:2022
+│       ├── iso9001-clauses.ts     # ISO 9001:2015
+│       ├── iso22301-clauses.ts    # ISO 22301:2019
+│       ├── soc2-clauses.ts        # SOC 2 Type II
+│       ├── gdpr-clauses.ts        # GDPR
+│       ├── nis2-clauses.ts        # NIS2 Directive
+│       ├── hipaa-clauses.ts       # HIPAA
+│       ├── pcidss-clauses.ts      # PCI DSS v4.0
+│       ├── nist-csf-clauses.ts    # NIST CSF 2.0
+│       └── dora-clauses.ts        # DORA
 ├── src/
 │   ├── app/
-│   │   ├── (app)/             # Authenticated app routes
-│   │   │   ├── org/[orgSlug]/ # Multi-tenant org routes
-│   │   │   │   ├── dashboard/
-│   │   │   │   ├── frameworks/
-│   │   │   │   ├── assessments/
-│   │   │   │   ├── soa/
-│   │   │   │   ├── risks/
-│   │   │   │   ├── tasks/
-│   │   │   │   ├── documents/
-│   │   │   │   ├── audits/
-│   │   │   │   ├── capas/
-│   │   │   │   ├── evidence/
-│   │   │   │   ├── training/
-│   │   │   │   ├── reports/
-│   │   │   │   └── settings/
-│   │   │   └── onboarding/
-│   │   ├── (auth)/            # Login/register pages
-│   │   └── api/               # API routes (auth)
+│   │   ├── (app)/                 # Authenticated routes
+│   │   │   ├── onboarding/        # New user onboarding
+│   │   │   └── org/[orgSlug]/     # Multi-tenant org routes
+│   │   │       ├── page.tsx       # Dashboard
+│   │   │       ├── frameworks/    # Framework browser
+│   │   │       ├── assessments/   # Gap assessments
+│   │   │       ├── soa/           # Statement of Applicability
+│   │   │       ├── risks/         # Risk register
+│   │   │       ├── tasks/         # Kanban board
+│   │   │       ├── documents/     # Document management
+│   │   │       ├── audits/        # Audit management
+│   │   │       ├── capa/          # CAPAs
+│   │   │       ├── evidence/      # Evidence collection
+│   │   │       ├── training/      # Training programs
+│   │   │       ├── controls/      # Control implementations
+│   │   │       ├── reports/       # Compliance & risk reports
+│   │   │       └── settings/      # Org settings & members
+│   │   ├── (auth)/                # Login / register
+│   │   └── api/                   # API routes (auth handlers)
 │   ├── components/
-│   │   ├── ui/                # shadcn/ui primitives
-│   │   ├── layout/            # App shell, sidebar, header
-│   │   ├── shared/            # Reusable components
-│   │   ├── frameworks/        # Framework-specific components
-│   │   ├── assessments/       # Assessment wizard, charts
-│   │   ├── tasks/             # Kanban board, task cards
-│   │   └── ...                # Module-specific components
+│   │   ├── ui/                    # shadcn/ui primitives
+│   │   ├── layout/                # App shell, sidebar, header
+│   │   ├── frameworks/            # Clause tree, control list
+│   │   ├── tasks/                 # Kanban board, task cards
+│   │   ├── training/              # Training dialogs & actions
+│   │   └── ...                    # Module-specific components
 │   └── lib/
-│       ├── auth.ts            # NextAuth v5 configuration
-│       ├── db.ts              # Prisma client singleton
-│       ├── actions/           # Server actions (mutations)
-│       └── queries/           # Data fetching functions
-└── middleware.ts              # Auth route protection
+│       ├── auth.ts                # NextAuth v5 configuration
+│       ├── auth.config.ts         # Auth route config
+│       ├── db.ts                  # Prisma client singleton
+│       ├── blob.ts                # Vercel Blob helpers
+│       ├── actions/               # Server actions (14 modules)
+│       ├── queries/               # Data fetching (15 modules)
+│       └── validations/           # Zod schemas
+└── middleware.ts                   # Auth route protection
 ```
 
-**Key design decisions:**
+### Key Design Decisions
 
-- **Multi-tenancy**: Shared database with `orgId` on all tenant-scoped tables. No separate databases per tenant.
-- **Server Actions**: All mutations use Next.js Server Actions (no REST API). Actions accept FormData and revalidate paths.
-- **Auth**: NextAuth v5 with JWT strategy, Prisma adapter, credentials provider. 30-day persistent sessions with secure cookies.
-- **RBAC**: Role-based access control enforced in server actions with a `requireAdmin()` helper pattern.
-- **Soft deletes**: Records use `deletedAt` timestamps rather than hard deletes for audit trail preservation.
-
----
-
-## Planned Features
-
-### High Priority
-
-- **Email notifications** — Send email alerts for task assignments, approaching due dates, audit schedules, and CAPA deadlines
-- **Bulk control implementation** — Update multiple control statuses at once from the SoA view
-- **Document versioning** — Track document revisions with version history, approval workflows, and rollback
-- **Audit findings workflow** — Structured workflow from finding to CAPA to verification to closure
-- **Risk heat map visualisation** — Interactive 5x5 risk matrix with drill-down into individual risks
-- **Dashboard customisation** — Configurable widget layout, date range filters, and per-framework dashboards
-- **Export to PDF** — Generate PDF reports for management review, audit evidence packs, and SoA documents
-- **Activity feed** — Real-time activity stream on the dashboard showing recent actions across the org
-- **Control mapping** — Map controls across frameworks (e.g. ISO 27001 A.8.1 maps to ISO 9001 7.1.3)
-- **File attachments on tasks** — Attach files directly to tasks as working documents or evidence
-
-### Medium Priority
-
-- **API access** — REST API with API key authentication for integration with external tools
-- **Webhook notifications** — Trigger webhooks on events (task completed, risk updated, audit scheduled)
-- **SSO / SAML** — Enterprise single sign-on via SAML 2.0 and OIDC providers
-- **Two-factor authentication** — TOTP-based 2FA for enhanced account security
-- **Recurring tasks** — Automatically create tasks on a schedule (monthly reviews, quarterly audits)
-- **Custom fields** — User-defined fields on risks, tasks, and CAPAs for org-specific metadata
-- **Audit templates** — Pre-built audit checklists for common audit types (surveillance, recertification)
-- **Evidence auto-collection** — Integrate with cloud providers (AWS, Azure, GCP) to automatically pull configuration evidence
-- **Compliance timeline** — Visual timeline showing the certification journey with milestones and deadlines
-- **Multi-language support** — Internationalisation for framework content and UI
-
-### Nice to Have
-
-- **AI-powered gap analysis** — Use AI to suggest control implementations based on your organisation's context
-- **AI risk suggestions** — Automatically identify potential risks from your industry and organisation profile
-- **Mobile app** — Native mobile experience for task management and audit fieldwork
-- **Offline audit mode** — Conduct audits offline and sync findings when back online
-- **Integration marketplace** — Connect with Jira, Slack, Teams, Confluence, and other tools
-- **Tenant white-labelling** — Custom branding (logo, colours, domain) per organisation
-- **Benchmark comparisons** — Compare your compliance maturity against industry averages
-- **Automated compliance scoring** — Continuously calculate compliance scores from connected systems
+- **Multi-tenancy** — Shared database with `orgId` on all tenant-scoped tables. Slug-based routing (`/org/[orgSlug]/...`).
+- **Server Actions** — All mutations use Next.js Server Actions. No REST API for internal operations.
+- **Auth** — NextAuth v5 with JWT strategy, 30-day sessions, secure cookies in production.
+- **RBAC** — Role-based access enforced in server actions with `requireAdmin()` / role-check helpers.
+- **Soft deletes** — Records use `deletedAt` timestamps for audit trail preservation.
+- **Framework caching** — Framework clause trees cached in Vercel Blob for faster page loads. Falls back to direct DB queries.
 
 ---
 
-## Upcoming Frameworks
+## Roles & Permissions
 
-### Information Security & Privacy
-
-| Framework | Description | Status |
-|-----------|-------------|--------|
-| **ISO 27001:2022** | Information security management systems | Available |
-| **ISO 27701:2019** | Privacy information management (PIMS extension to 27001) | Planned |
-| **ISO 27017:2015** | Cloud security controls | Planned |
-| **ISO 27018:2019** | Protection of PII in public clouds | Planned |
-| **SOC 2 Type II** | Trust services criteria (Security, Availability, etc.) | Planned |
-| **NIST CSF 2.0** | Cybersecurity framework (Govern, Identify, Protect, Detect, Respond, Recover) | Planned |
-| **NIST 800-53 Rev 5** | Security and privacy controls for federal systems | Planned |
-| **CIS Controls v8** | Center for Internet Security critical security controls | Planned |
-| **GDPR** | EU General Data Protection Regulation controls | Planned |
-| **PCI DSS v4.0** | Payment card industry data security standard | Planned |
-
-### Quality & Operations
-
-| Framework | Description | Status |
-|-----------|-------------|--------|
-| **ISO 9001:2015** | Quality management systems | Available |
-| **ISO 14001:2015** | Environmental management systems | Planned |
-| **ISO 45001:2018** | Occupational health and safety | Planned |
-| **ISO 22301:2019** | Business continuity management | Planned |
-| **ISO 20000-1:2018** | IT service management | Planned |
-| **ISO 31000:2018** | Risk management guidelines | Planned |
-| **ISO 42001:2023** | AI management systems | Planned |
-
-### Industry-Specific
-
-| Framework | Description | Status |
-|-----------|-------------|--------|
-| **ISO 13485:2016** | Medical devices quality management | Planned |
-| **ISO/IEC 17025:2017** | Testing and calibration laboratories | Planned |
-| **HIPAA** | US health information privacy and security | Planned |
-| **TISAX** | Trusted information security assessment (automotive) | Planned |
-| **SWIFT CSP** | Customer security programme (financial services) | Planned |
-
-### Regional & Emerging
-
-| Framework | Description | Status |
-|-----------|-------------|--------|
-| **NIS2 Directive** | EU network and information security directive | Planned |
-| **DORA** | EU Digital Operational Resilience Act (financial) | Planned |
-| **Cyber Essentials** | UK government-backed cybersecurity scheme | Planned |
-| **Essential Eight** | Australian Signals Directorate maturity model | Planned |
-| **CSA STAR** | Cloud Security Alliance security trust assurance | Planned |
-
-Want a specific framework prioritised? Open an issue on the repository.
+| Permission | Admin | Manager | Auditor | Viewer |
+|-----------|-------|---------|---------|--------|
+| View dashboard, reports, frameworks | Yes | Yes | Yes | Yes |
+| Run assessments, update SoA | Yes | Yes | No | No |
+| Manage risks, tasks, documents | Yes | Yes | No | No |
+| Manage CAPAs | Yes | Yes | No | No |
+| Conduct audits | Yes | No | Yes | No |
+| Manage members & settings | Yes | No | No | No |
+| Create organisations | Yes | No | No | No |
 
 ---
 
-## Tech Stack
+## Scripts
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | Next.js 16 (App Router) |
-| Language | TypeScript |
-| Database | PostgreSQL |
-| ORM | Prisma |
-| Authentication | NextAuth v5 (Auth.js) |
-| UI Components | shadcn/ui |
-| Styling | Tailwind CSS |
-| Icons | Lucide React |
-| Forms | React Hook Form + Zod |
-| Charts | Recharts |
-| Drag & Drop | Native HTML5 API |
+```bash
+npm run dev          # Start development server
+npm run build        # Production build
+npm run start        # Start production server
+npm run lint         # Run ESLint
+npm run db:generate  # Regenerate Prisma client
+npm run db:push      # Push schema to database
+npm run db:migrate   # Run Prisma migrations
+npm run db:seed      # Seed frameworks + demo data
+npm run db:studio    # Open Prisma Studio
+npm run blob:upload  # Upload frameworks to Vercel Blob
+```
+
+---
+
+## Roadmap
+
+- [ ] Email notifications for task assignments, due dates, and audit schedules
+- [ ] Bulk control implementation updates from the SoA view
+- [ ] Document versioning with approval workflows
+- [ ] Risk heat map visualization (interactive 5x5 matrix)
+- [ ] PDF report generation for management reviews and audit evidence
+- [ ] Cross-framework control mapping
+- [ ] API access with key authentication
+- [ ] SSO / SAML integration
+- [ ] AI-powered gap analysis and risk suggestions
+- [ ] Mobile-optimized audit fieldwork
 
 ---
 
