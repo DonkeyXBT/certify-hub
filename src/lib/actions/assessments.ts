@@ -49,10 +49,22 @@ export async function createAssessment(orgSlug: string, formData: FormData) {
   })
 
   if (!org) {
-    throw new Error("Organization not found")
+    return { error: "Organization not found" }
   }
 
-  await validateOrgAccess(user.id, org.id)
+  const membership = await db.membership.findUnique({
+    where: {
+      userId_orgId: {
+        userId: user.id,
+        orgId: org.id,
+      },
+    },
+    select: { id: true, role: true, isActive: true },
+  })
+
+  if (!membership || !membership.isActive) {
+    return { error: "Unauthorized: No active membership for this organization" }
+  }
 
   const rawData = {
     name: formData.get("name") as string,

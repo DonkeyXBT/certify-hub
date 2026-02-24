@@ -29,10 +29,9 @@ export function AssessmentForm({ orgId, orgSlug, frameworks }: AssessmentFormPro
 
   function onSubmit(formData: FormData) {
     startTransition(async () => {
-      try {
-        await createAssessment(orgSlug, formData)
-      } catch (e: any) {
-        toast.error(e?.message || "Failed to create assessment")
+      const result = await createAssessment(orgSlug, formData)
+      if (result?.error) {
+        toast.error(result.error)
       }
     })
   }
