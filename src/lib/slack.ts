@@ -226,7 +226,7 @@ export async function notifyTaskCreated(
   }
 
   await sendToSlack(webhookUrl, {
-    text: `📋 New task created: "${data.taskTitle}"`,
+    text: "",
     attachments: [
       {
         color: priorityColor(data.priority),
@@ -273,7 +273,7 @@ export async function notifyTaskStatusChanged(
   }
 
   await sendToSlack(webhookUrl, {
-    text: `${isCompleted ? "✅" : "🔄"} Task "${data.taskTitle}" → ${formatStatus(data.newStatus)}`,
+    text: "",
     attachments: [
       {
         color: taskStatusColor(data.newStatus),
@@ -336,7 +336,7 @@ export async function notifyControlSaved(
   )
 
   await sendToSlack(webhookUrl, {
-    text: `📝 ${data.savedByName} assessed control ${data.controlRef} — ${formatStatus(data.complianceStatus)}`,
+    text: "",
     attachments: [{ color: complianceColor(data.complianceStatus), blocks }],
   })
 }
@@ -364,7 +364,7 @@ export async function notifyAssessmentCompleted(
     : COLORS.red
 
   await sendToSlack(webhookUrl, {
-    text: `🏁 Assessment completed: "${data.assessmentName}" — ${data.overallScore}%`,
+    text: "",
     attachments: [
       {
         color: scoreColor,
