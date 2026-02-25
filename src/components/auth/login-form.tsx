@@ -11,6 +11,7 @@ import { loginUser } from "@/lib/actions/auth"
 import { loginSchema, type LoginInput } from "@/lib/validations/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import Link from "next/link"
 import {
   Card,
   CardContent,
@@ -89,7 +90,16 @@ export function LoginForm() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Password</FormLabel>
+                    <Link
+                      href="/forgot-password"
+                      className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                      tabIndex={-1}
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
                   <FormControl>
                     <Input
                       type="password"

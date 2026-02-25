@@ -10,13 +10,15 @@ export default auth((req) => {
 
   const isAuthPage = nextUrl.pathname.startsWith("/login")
   const isVerifyPage = nextUrl.pathname.startsWith("/verify")
+  const isResetPage = nextUrl.pathname.startsWith("/reset-password")
+  const isForgotPage = nextUrl.pathname.startsWith("/forgot-password")
   const isApiRoute = nextUrl.pathname.startsWith("/api")
   const isPublicPage = nextUrl.pathname === "/"
 
   if (isApiRoute) return NextResponse.next()
 
-  // Verification pages are always accessible (no redirect for logged-in users)
-  if (isVerifyPage) return NextResponse.next()
+  // Password reset and verification pages are always publicly accessible
+  if (isVerifyPage || isResetPage || isForgotPage) return NextResponse.next()
 
   if (isAuthPage) {
     if (isLoggedIn) return NextResponse.redirect(new URL("/onboarding", nextUrl))

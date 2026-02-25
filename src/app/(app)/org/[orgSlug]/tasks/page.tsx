@@ -75,6 +75,7 @@ export default async function TasksPage({
         generalTasks={generalTasks}
         assessmentTaskSets={assessmentTaskSets}
         orgSlug={orgSlug}
+        currentUserId={session.user.id}
         members={members}
         controls={controlImpls}
         risks={risks}

@@ -3,6 +3,9 @@ import { db } from "@/lib/db"
 import { redirect } from "next/navigation"
 import { Building2, Users, ClipboardCheck, UserCheck } from "lucide-react"
 import { AdminOrgList } from "@/components/admin/admin-org-list"
+import { AdminUserList } from "@/components/admin/admin-user-list"
+import { CreateOrgDialog } from "@/components/admin/create-org-dialog"
+import { CreateUserDialog } from "@/components/admin/create-user-dialog"
 
 export const metadata = {
   title: "Admin Panel — Certifi by Cyfenced",
@@ -62,11 +65,42 @@ async function getAdminData() {
   }))
 }
 
+async function getAllUsers() {
+  const users = await db.user.findMany({
+    orderBy: [{ isSuperAdmin: "desc" }, { createdAt: "asc" }],
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      emailVerified: true,
+      isSuperAdmin: true,
+      createdAt: true,
+      memberships: {
+        where: { isActive: true },
+        select: {
+          role: true,
+          org: { select: { name: true } },
+        },
+      },
+    },
+  })
+
+  return users.map((u) => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    emailVerified: u.emailVerified,
+    isSuperAdmin: u.isSuperAdmin,
+    createdAt: u.createdAt,
+    orgs: u.memberships.map((m) => ({ name: m.org.name, role: m.role })),
+  }))
+}
+
 export default async function AdminPage() {
   const session = await auth()
   if (!session?.user?.id) redirect("/login")
 
-  const orgs = await getAdminData()
+  const [orgs, allUsers] = await Promise.all([getAdminData(), getAllUsers()])
 
   const totalMembers = orgs.reduce((sum, o) => sum + o.memberCount, 0)
   const activeMembers = orgs.reduce(
@@ -103,15 +137,7 @@ export default async function AdminPage() {
   ]
 
   return (
-    <div className="space-y-8">
-      {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Organizations</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Overview of all organizations and their members on the platform.
-        </p>
-      </div>
-
+    <div className="space-y-10">
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
@@ -131,17 +157,42 @@ export default async function AdminPage() {
         ))}
       </div>
 
-      {/* Org list */}
+      {/* Organizations */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold">
-            All Organizations
-            <span className="ml-2 text-sm font-normal text-muted-foreground">
-              ({orgs.length})
-            </span>
-          </h2>
+          <div>
+            <h2 className="text-base font-semibold">
+              Organizations
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                ({orgs.length})
+              </span>
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Manage organizations and their members.
+            </p>
+          </div>
+          <CreateOrgDialog />
         </div>
         <AdminOrgList orgs={orgs} />
+      </div>
+
+      {/* Users */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold">
+              Platform Users
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                ({allUsers.length})
+              </span>
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Manage user accounts and super admin access.
+            </p>
+          </div>
+          <CreateUserDialog />
+        </div>
+        <AdminUserList users={allUsers} currentUserId={session.user.id} />
       </div>
     </div>
   )

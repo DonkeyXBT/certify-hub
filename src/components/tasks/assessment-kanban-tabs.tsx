@@ -28,6 +28,7 @@ interface Props {
   generalTasks: KanbanTask[]
   assessmentTaskSets: AssessmentTaskSet[]
   orgSlug: string
+  currentUserId: string
   members: Member[]
   controls: ControlImpl[]
   risks: LinkOption[]
@@ -38,6 +39,7 @@ export function AssessmentKanbanTabs({
   generalTasks,
   assessmentTaskSets,
   orgSlug,
+  currentUserId,
   members,
   controls,
   risks,
@@ -50,6 +52,7 @@ export function AssessmentKanbanTabs({
       <KanbanBoard
         initialTasks={generalTasks}
         orgSlug={orgSlug}
+        currentUserId={currentUserId}
         members={members}
         controls={controls}
         risks={risks}
@@ -64,9 +67,7 @@ export function AssessmentKanbanTabs({
         <TabsTrigger value="general" className="gap-2">
           General
           <Badge variant="secondary" className="text-xs">
-            {generalTasks.filter(
-              (t) => t.status !== "CANCELLED" && t.status !== "OVERDUE"
-            ).length}
+            {generalTasks.filter((t) => t.status !== "CANCELLED").length}
           </Badge>
         </TabsTrigger>
         {assessmentTaskSets.map(({ assessment }) => (
@@ -87,6 +88,7 @@ export function AssessmentKanbanTabs({
         <KanbanBoard
           initialTasks={generalTasks}
           orgSlug={orgSlug}
+          currentUserId={currentUserId}
           members={members}
           controls={controls}
           risks={risks}
@@ -106,6 +108,7 @@ export function AssessmentKanbanTabs({
           <KanbanBoard
             initialTasks={tasks}
             orgSlug={orgSlug}
+            currentUserId={currentUserId}
             members={members}
             controls={controls}
             risks={risks}

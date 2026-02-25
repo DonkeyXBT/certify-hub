@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -10,12 +11,21 @@ import {
   Users,
   ClipboardCheck,
   Calendar,
-  Crown,
-  Eye,
-  Briefcase,
-  UserCheck,
+  X,
 } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
 import type { OrgRole } from "@prisma/client"
+import { adminRemoveMember, adminUpdateMemberRole } from "@/lib/actions/admin"
+import { EditOrgDialog } from "./edit-org-dialog"
+import { DeleteOrgButton } from "./delete-org-button"
+import { AddMemberDialog } from "./add-member-dialog"
 
 interface Member {
   id: string
@@ -53,132 +63,176 @@ function getInitials(name: string | null, email: string) {
   return email.slice(0, 2).toUpperCase()
 }
 
+function MemberRow({ member, orgId, orgSlug }: { member: Member; orgId: string; orgSlug: string }) {
+  const [isPending, startTransition] = useTransition()
+
+  function handleRoleChange(newRole: string) {
+    startTransition(async () => {
+      const result = await adminUpdateMemberRole(member.id, orgId, newRole)
+      if (result?.error) toast.error(result.error)
+      else toast.success("Role updated")
+    })
+  }
+
+  function handleRemove() {
+    startTransition(async () => {
+      const result = await adminRemoveMember(member.id, orgId)
+      if (result?.error) toast.error(result.error)
+      else toast.success("Member removed")
+    })
+  }
+
+  return (
+    <div className="flex items-center gap-4 px-6 py-3 hover:bg-muted/30 transition-colors">
+      <Avatar className="h-8 w-8 shrink-0">
+        <AvatarFallback className="text-xs">
+          {getInitials(member.name, member.email)}
+        </AvatarFallback>
+      </Avatar>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium truncate">
+            {member.name ?? <span className="text-muted-foreground italic">No name</span>}
+          </span>
+          {!member.emailVerified && (
+            <span className="text-xs text-amber-600 dark:text-amber-400 font-medium shrink-0">
+              unverified
+            </span>
+          )}
+          {!member.isActive && (
+            <span className="text-xs text-muted-foreground shrink-0">(inactive)</span>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+      </div>
+
+      <div className="flex items-center gap-2 shrink-0">
+        <Select
+          value={member.role}
+          onValueChange={handleRoleChange}
+          disabled={isPending}
+        >
+          <SelectTrigger className="h-7 w-[110px] text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ADMIN">Admin</SelectItem>
+            <SelectItem value="MANAGER">Manager</SelectItem>
+            <SelectItem value="AUDITOR">Auditor</SelectItem>
+            <SelectItem value="VIEWER">Viewer</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+          onClick={handleRemove}
+          disabled={isPending}
+          title="Remove member"
+        >
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 function OrgCard({ org }: { org: OrgData }) {
   const [open, setOpen] = useState(false)
 
   return (
     <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden">
       {/* org header row */}
-      <button
-        className="w-full text-left px-6 py-5 hover:bg-muted/40 transition-colors"
-        onClick={() => setOpen((v) => !v)}
-      >
+      <div className="w-full px-6 py-4">
         <div className="flex items-center gap-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-muted">
-            <Building2 className="h-5 w-5 text-muted-foreground" />
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold truncate">{org.name}</span>
-              <span className="text-xs text-muted-foreground font-mono">{org.slug}</span>
-              {org.industry && (
-                <span className="text-xs text-muted-foreground hidden sm:inline">
-                  · {org.industry}
-                </span>
-              )}
-              {org.size && (
-                <span className="text-xs text-muted-foreground hidden md:inline">
-                  · {org.size}
-                </span>
-              )}
+          <button
+            className="flex items-center gap-4 flex-1 min-w-0 text-left"
+            onClick={() => setOpen((v) => !v)}
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border bg-muted">
+              <Building2 className="h-4.5 w-4.5 text-muted-foreground" />
             </div>
-            <div className="mt-1 flex items-center gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                {new Date(org.createdAt).toLocaleDateString("en-GB", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })}
-              </span>
-              <span className="flex items-center gap-1">
-                <Users className="h-3 w-3" />
-                {org.memberCount} {org.memberCount === 1 ? "member" : "members"}
-              </span>
-              <span className="flex items-center gap-1">
-                <ClipboardCheck className="h-3 w-3" />
-                {org.assessmentCount} {org.assessmentCount === 1 ? "assessment" : "assessments"}
-              </span>
-            </div>
-          </div>
 
-          <div className="ml-auto flex items-center gap-2 shrink-0">
-            <Badge variant="secondary" className="text-xs">
-              {org.memberCount} {org.memberCount === 1 ? "member" : "members"}
-            </Badge>
-            {open ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            )}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-semibold truncate">{org.name}</span>
+                <span className="text-xs text-muted-foreground font-mono">{org.slug}</span>
+                {org.industry && (
+                  <span className="text-xs text-muted-foreground hidden sm:inline">
+                    · {org.industry}
+                  </span>
+                )}
+              </div>
+              <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {new Date(org.createdAt).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Users className="h-3 w-3" />
+                  {org.memberCount} {org.memberCount === 1 ? "member" : "members"}
+                </span>
+                <span className="flex items-center gap-1">
+                  <ClipboardCheck className="h-3 w-3" />
+                  {org.assessmentCount} {org.assessmentCount === 1 ? "assessment" : "assessments"}
+                </span>
+              </div>
+            </div>
+          </button>
+
+          <div className="flex items-center gap-1 shrink-0">
+            <EditOrgDialog
+              orgId={org.id}
+              name={org.name}
+              industry={org.industry}
+              size={org.size}
+            />
+            <DeleteOrgButton orgId={org.id} orgName={org.name} />
+            <button
+              className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => setOpen((v) => !v)}
+              aria-label="Toggle members"
+            >
+              {open ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </button>
           </div>
         </div>
-      </button>
+      </div>
 
       {/* members list */}
       {open && (
-        <div className="border-t bg-muted/20">
+        <div className="border-t bg-muted/10">
+          <div className="flex items-center justify-between px-6 py-2 border-b bg-muted/20">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Members ({org.members.length})
+            </span>
+            <AddMemberDialog orgId={org.id} orgName={org.name} />
+          </div>
+
           {org.members.length === 0 ? (
             <div className="px-6 py-8 text-center text-sm text-muted-foreground">
-              No members in this organization.
+              No members yet.{" "}
+              <span className="text-foreground">Use "Add member" to invite someone.</span>
             </div>
           ) : (
             <div className="divide-y">
               {org.members.map((member) => (
-                <div
+                <MemberRow
                   key={member.id}
-                  className="flex items-center gap-4 px-6 py-3.5 hover:bg-muted/40 transition-colors"
-                >
-                  <Avatar className="h-8 w-8 shrink-0">
-                    <AvatarFallback className="text-xs">
-                      {getInitials(member.name, member.email)}
-                    </AvatarFallback>
-                  </Avatar>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium truncate">
-                        {member.name ?? <span className="text-muted-foreground italic">No name</span>}
-                      </span>
-                      {!member.emailVerified && (
-                        <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                          unverified
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate">{member.email}</p>
-                  </div>
-
-                  <div className="flex items-center gap-3 shrink-0">
-                    <Badge
-                      variant={ROLE_CONFIG[member.role].variant}
-                      className="text-xs"
-                    >
-                      {ROLE_CONFIG[member.role].label}
-                    </Badge>
-
-                    <span
-                      className={[
-                        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
-                        member.isActive
-                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                          : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
-                      ].join(" ")}
-                    >
-                      {member.isActive ? "Active" : "Inactive"}
-                    </span>
-
-                    <span className="text-xs text-muted-foreground hidden lg:block">
-                      Joined{" "}
-                      {new Date(member.joinedAt).toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </div>
-                </div>
+                  member={member}
+                  orgId={org.id}
+                  orgSlug={org.slug}
+                />
               ))}
             </div>
           )}

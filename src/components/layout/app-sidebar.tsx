@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { OrgRole } from "@prisma/client"
-import { LogOut } from "lucide-react"
+import { LogOut, ShieldCheck } from "lucide-react"
 import { getNavItems } from "@/config/nav"
 import { OrgSwitcher } from "@/components/layout/org-switcher"
 import {
@@ -165,6 +165,17 @@ export function AppSidebar({ org, userOrgs, userRole, user, isSuperAdmin }: AppS
                     </p>
                   </div>
                 </DropdownMenuLabel>
+                {isSuperAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin" className="flex items-center gap-2">
+                        <ShieldCheck />
+                        <span>Admin panel</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => signOut({ callbackUrl: "/login" })}

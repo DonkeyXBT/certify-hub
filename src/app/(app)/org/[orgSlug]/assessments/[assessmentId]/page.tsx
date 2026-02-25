@@ -152,6 +152,7 @@ export default async function AssessmentDetailPage({
             <KanbanBoard
               initialTasks={tasks}
               orgSlug={orgSlug}
+              currentUserId={session.user.id}
               members={members}
               controls={controlImpls}
               risks={risks}

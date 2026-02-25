@@ -2,7 +2,42 @@
   "permissions": {
     "allow": [
       "Bash(ls:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(git pull origin main)",
+      "mcp__claude_ai_Vercel__list_teams",
+      "Bash(vercel env ls 2>/dev/null || echo \"vercel CLI not available or not linked\")",
+      "Bash(which vercel && vercel --version 2>/dev/null || npx vercel --version 2>/dev/null || echo \"vercel not found\")",
+      "Bash(vercel env ls 2>&1)",
+      "Bash(vercel project ls 2>&1)",
+      "Bash(vercel link --project certify-hub --yes 2>&1)",
+      "Bash(echo \"https://gcrtool.cyfenced.nl\" | vercel env add AUTH_URL production 2>&1)",
+      "Bash(echo \"https://gcrtool.cyfenced.nl\" | vercel env add NEXTAUTH_URL production 2>&1)",
+      "Bash(echo \"https://gcrtool.cyfenced.nl\" | vercel env add NEXT_PUBLIC_APP_URL production 2>&1)",
+      "Bash(vercel --prod 2>&1)",
+      "Bash(vercel inspect certify-33nqwzi1k-theodore-hackingtons-projects.vercel.app 2>&1)",
+      "Bash(find /Users/davey/Documents/Projects/certify-hub/src/lib/actions -type f -name \"*.ts\" | xargs -I {} basename {} | sort)",
+      "Bash(npx tsc --noEmit 2>&1 | head -60)",
+      "Bash(npm install 2>&1 | tail -5)",
+      "Bash(git add src/lib/slack.ts src/lib/actions/organization.ts src/lib/actions/tasks.ts src/lib/actions/assessments.ts src/components/settings/slack-form.tsx \"src/app/\\(app\\)/org/[orgSlug]/settings/page.tsx\" package-lock.json && git status)",
+      "Bash(git commit -m \"$\\(cat <<'EOF'\nfeat: add per-organization Slack integration\n\n- New src/lib/slack.ts with four notification functions:\n  notifyTaskCreated, notifyTaskStatusChanged, notifyControlSaved,\n  notifyAssessmentCompleted — all fire-and-forget with full Block Kit formatting\n- Integrations tab added to Settings page with SlackForm component:\n  webhook URL input + per-event toggles \\(task created, status changed,\n  control response saved, assessment completed\\)\n- updateSlackSettings server action persists webhook URL and notification\n  preferences into org.settings JSON\n- tasks.ts and assessments.ts hooked: notifications fire after every\n  createTask, updateTaskStatus, saveAssessmentResponse, completeAssessment\n  including who did it, control ref/name, compliance status, score, etc.\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push origin main 2>&1 && vercel --prod 2>&1)",
+      "Bash(vercel inspect certify-nfsupt3pq-theodore-hackingtons-projects.vercel.app 2>&1 | grep -E \"status|url|alias\" -i)",
+      "Bash(git add src/lib/slack.ts && git commit -m \"$\\(cat <<'EOF'\nfeat: redesign Slack notifications with attachments and Block Kit\n\nSwitch from plain blocks to colored attachments for left-border accent.\nAdd header blocks, context blocks with timestamp/attribution, action\nbuttons, score bar for assessments, badge helpers for status/priority/\ncompliance, and blockquote formatting for gaps text.\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\nEOF\n\\)\" && git push origin main && vercel --prod 2>&1)",
+      "Bash(vercel inspect certify-7yrhprvm3-theodore-hackingtons-projects.vercel.app 2>&1 | grep status)",
+      "Bash(git add src/app/page.tsx src/config/site.ts src/app/layout.tsx \"src/app/\\(auth\\)/login/page.tsx\" src/lib/email.ts src/lib/utils/constants.ts && git commit -m \"$\\(cat <<'EOF'\nfeat: rebrand to Certifi by Cyfenced + redesign landing page\n\nRename all CertifyHub references to \"Certifi by Cyfenced\" across\nsite config, layout metadata, login page, email templates, and constants.\n\nLanding page full redesign:\n- Dark slate-950 hero with dot-grid texture, ambient cyan glow, and\n  gradient headline\n- Fixed frosted-glass navbar with cyan CTA button\n- Framework badges row in monospace chips\n- Stats strip with 4 metrics\n- 6-feature grid with top-edge hover accent lines\n- 3-step \"how it works\" cards with connector lines and large mono numbers\n- 3-column why-Certifi strip\n- CTA card with dot-grid + gradient overlay\n- Clean dark footer\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\nEOF\n\\)\" && git push origin main && vercel --prod 2>&1)",
+      "Bash(vercel inspect certify-ereowfouu-theodore-hackingtons-projects.vercel.app 2>&1 | grep status)",
+      "Bash(find /Users/davey/Documents/Projects/certify-hub -type f -path \"*admin*\" 2>/dev/null | head -20)",
+      "Bash(git add src/app/admin/ src/components/admin/ src/components/layout/org-switcher.tsx && git commit -m \"$\\(cat <<'EOF'\nfeat: add global admin panel for super admins\n\nNew /admin route with auth guard \\(super admin only\\):\n- Stats cards: total orgs, members, active members, assessments\n- Expandable org cards showing all members with role badge,\n  active/inactive status, verified status, and join date\n- Live search/filter across org names, slugs, and industry\n- \"Admin panel\" link added to org switcher dropdown for super admins\n- SignOutButton client component for the admin header\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\nEOF\n\\)\" && git push origin main && vercel --prod 2>&1)",
+      "mcp__claude_ai_Vercel__get_deployment",
+      "Bash(npx tsc --noEmit 2>&1 | head -50)",
+      "Bash(vercel deploy --prod 2>&1 | tail -20)",
+      "Bash(npx tsc --noEmit 2>&1)",
+      "Bash(vercel deploy --prod 2>&1 | tail -10)",
+      "Bash(find /Users/davey/Documents/Projects/certify-hub/src/app -type f -path \"*/org/*/tasks*\" 2>/dev/null | head -20)",
+      "Bash(grep -n \"session\\\\.\" /Users/davey/Documents/Projects/certify-hub/src/app/\\\\\\(app\\\\\\)/org/\\\\[orgSlug\\\\]/assessments/\\\\[assessmentId\\\\]/page.tsx | head -5)",
+      "Bash(grep -n \"auth\\\\\\(\\\\\\)\\\\|session\\\\|user\\\\.id\" /Users/davey/Documents/Projects/certify-hub/src/app/\\\\\\(app\\\\\\)/org/\\\\[orgSlug\\\\]/assessments/\\\\[assessmentId\\\\]/page.tsx | head -10)",
+      "Bash(vercel deploy --prod 2>&1 | tail -8)",
+      "Bash(git add -A && git status)"
     ]
   }
 }

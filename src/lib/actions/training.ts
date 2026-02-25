@@ -104,3 +104,41 @@ export async function removeTrainingRecord(recordId: string, orgSlug: string) {
   revalidatePath(`/org/${orgSlug}/training/${record.program.id}`)
   return { success: true }
 }
+
+// Self-service: members can only update their own records (start / complete)
+export async function selfUpdateTraining(
+  recordId: string,
+  action: "start" | "complete",
+  orgSlug: string,
+  score?: number
+) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "Unauthorized" }
+
+  // Fetch the record and verify ownership
+  const record = await db.trainingRecord.findUnique({
+    where: { id: recordId },
+    select: { userId: true, status: true, program: { select: { id: true } } },
+  })
+  if (!record) return { error: "Training record not found" }
+  if (record.userId !== session.user.id) return { error: "Unauthorized" }
+
+  const updateData: Record<string, unknown> = {}
+  if (action === "start") {
+    if (record.status !== "NOT_STARTED") return { error: "Training already started" }
+    updateData.status = "IN_PROGRESS"
+    updateData.startedAt = new Date()
+  } else {
+    if (record.status === "COMPLETED") return { error: "Training already completed" }
+    updateData.status = "COMPLETED"
+    updateData.completedAt = new Date()
+    if (record.status === "NOT_STARTED") updateData.startedAt = new Date()
+    if (score !== undefined) updateData.score = score
+  }
+
+  await db.trainingRecord.update({ where: { id: recordId }, data: updateData })
+
+  revalidatePath(`/org/${orgSlug}/training`)
+  revalidatePath(`/org/${orgSlug}/training/${record.program.id}`)
+  return { success: true }
+}
