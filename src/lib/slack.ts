@@ -1,10 +1,15 @@
 import { db } from "@/lib/db"
 
-type SlackBlock = Record<string, unknown>
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-interface SlackPayload {
+type Block = Record<string, unknown>
+
+interface SlackMessage {
   text: string
-  blocks?: SlackBlock[]
+  attachments: Array<{
+    color: string
+    blocks: Block[]
+  }>
 }
 
 interface SlackSettings {
@@ -12,10 +17,28 @@ interface SlackSettings {
   notifications: Record<string, boolean>
 }
 
+// ─── Config ───────────────────────────────────────────────────────────────────
+
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL || "https://gcrtool.cyfenced.nl"
+
+const COLORS = {
+  blue:   "#3b82f6",
+  green:  "#22c55e",
+  amber:  "#f59e0b",
+  orange: "#f97316",
+  red:    "#ef4444",
+  purple: "#8b5cf6",
+  slate:  "#64748b",
+  dark:   "#0f172a",
+} as const
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 async function getOrgSlackSettings(orgId: string): Promise<SlackSettings> {
   const org = await db.organization.findUnique({
     where: { id: orgId },
-    select: { settings: true },
+    select: { settings: true, name: true },
   })
   const settings = (org?.settings as Record<string, unknown>) ?? {}
   return {
@@ -24,7 +47,7 @@ async function getOrgSlackSettings(orgId: string): Promise<SlackSettings> {
   }
 }
 
-async function sendToSlack(webhookUrl: string, payload: SlackPayload) {
+async function sendToSlack(webhookUrl: string, payload: SlackMessage) {
   try {
     const res = await fetch(webhookUrl, {
       method: "POST",
@@ -39,36 +62,137 @@ async function sendToSlack(webhookUrl: string, payload: SlackPayload) {
   }
 }
 
-function divider(): SlackBlock {
+function formatStatus(s: string): string {
+  return s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function priorityColor(priority: string): string {
+  return (
+    { LOW: COLORS.slate, MEDIUM: COLORS.amber, HIGH: COLORS.orange, CRITICAL: COLORS.red }[
+      priority
+    ] ?? COLORS.slate
+  )
+}
+
+function complianceColor(status: string): string {
+  return (
+    {
+      COMPLIANT: COLORS.green,
+      PARTIALLY_COMPLIANT: COLORS.amber,
+      NON_COMPLIANT: COLORS.red,
+      NOT_ASSESSED: COLORS.slate,
+    }[status] ?? COLORS.slate
+  )
+}
+
+function taskStatusColor(status: string): string {
+  return (
+    {
+      TODO: COLORS.slate,
+      IN_PROGRESS: COLORS.blue,
+      IN_REVIEW: COLORS.purple,
+      COMPLETED: COLORS.green,
+      CANCELLED: COLORS.slate,
+      OVERDUE: COLORS.red,
+    }[status] ?? COLORS.slate
+  )
+}
+
+function complianceBadge(status: string): string {
+  return (
+    {
+      COMPLIANT:           "✅  Compliant",
+      PARTIALLY_COMPLIANT: "🟡  Partially Compliant",
+      NON_COMPLIANT:       "🔴  Non-Compliant",
+      NOT_ASSESSED:        "⬜  Not Assessed",
+    }[status] ?? formatStatus(status)
+  )
+}
+
+function taskStatusBadge(status: string): string {
+  return (
+    {
+      TODO:        "◻  To Do",
+      IN_PROGRESS: "🔵  In Progress",
+      IN_REVIEW:   "🟣  In Review",
+      COMPLETED:   "✅  Completed",
+      CANCELLED:   "⛔  Cancelled",
+      OVERDUE:     "⚠️  Overdue",
+    }[status] ?? formatStatus(status)
+  )
+}
+
+function priorityBadge(priority: string): string {
+  return (
+    {
+      LOW:      "🟢  Low",
+      MEDIUM:   "🟡  Medium",
+      HIGH:     "🟠  High",
+      CRITICAL: "🔴  Critical",
+    }[priority] ?? formatStatus(priority)
+  )
+}
+
+function scoreBar(score: number): string {
+  const filled = Math.round(score / 10)
+  const empty = 10 - filled
+  return "█".repeat(filled) + "░".repeat(empty) + `  *${score}%*`
+}
+
+function nowStr(): string {
+  return new Date().toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Amsterdam",
+  })
+}
+
+// Block builders
+function header(text: string): Block {
+  return { type: "header", text: { type: "plain_text", text, emoji: true } }
+}
+
+function section(mrkdwn: string): Block {
+  return { type: "section", text: { type: "mrkdwn", text: mrkdwn } }
+}
+
+function fields(pairs: [string, string][]): Block {
+  return {
+    type: "section",
+    fields: pairs.map(([label, value]) => ({
+      type: "mrkdwn",
+      text: `*${label}*\n${value}`,
+    })),
+  }
+}
+
+function context(text: string): Block {
+  return {
+    type: "context",
+    elements: [{ type: "mrkdwn", text }],
+  }
+}
+
+function button(label: string, url: string, style?: "primary" | "danger"): Block {
+  const btn: Record<string, unknown> = {
+    type: "button",
+    text: { type: "plain_text", text: label, emoji: true },
+    url,
+  }
+  if (style) btn.style = style
+  return btn
+}
+
+function actions(buttons: Block[]): Block {
+  return { type: "actions", elements: buttons }
+}
+
+function divider(): Block {
   return { type: "divider" }
 }
-
-function statusEmoji(status: string): string {
-  const map: Record<string, string> = {
-    TODO: "📋",
-    IN_PROGRESS: "🔄",
-    IN_REVIEW: "👀",
-    COMPLETED: "✅",
-    CANCELLED: "❌",
-    OVERDUE: "⚠️",
-    COMPLIANT: "✅",
-    PARTIALLY_COMPLIANT: "🟡",
-    NON_COMPLIANT: "🔴",
-    NOT_ASSESSED: "⬜",
-    LOW: "🟢",
-    MEDIUM: "🟡",
-    HIGH: "🟠",
-    CRITICAL: "🔴",
-  }
-  return map[status] ?? "•"
-}
-
-function formatStatus(status: string): string {
-  return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-}
-
-const APP_URL =
-  process.env.NEXT_PUBLIC_APP_URL || "https://gcrtool.cyfenced.nl"
 
 // ─── Task Created ─────────────────────────────────────────────────────────────
 
@@ -87,45 +211,35 @@ export async function notifyTaskCreated(
   const { webhookUrl, notifications } = await getOrgSlackSettings(orgId)
   if (!webhookUrl || notifications.taskCreated === false) return
 
-  const tasksUrl = `${APP_URL}/org/${data.orgSlug}/tasks`
+  const url = `${APP_URL}/org/${data.orgSlug}/tasks`
+  const dueLine = data.dueDate
+    ? data.dueDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+    : "_No due date_"
 
-  const fields: SlackBlock[] = [
-    { type: "mrkdwn", text: `*Task*\n${data.taskTitle}` },
-    {
-      type: "mrkdwn",
-      text: `*Priority*\n${statusEmoji(data.priority)} ${formatStatus(data.priority)}`,
-    },
-    { type: "mrkdwn", text: `*Created by*\n${data.creatorName}` },
-    {
-      type: "mrkdwn",
-      text: `*Assigned to*\n${data.assigneeName ?? "_Unassigned_"}`,
-    },
+  const detailFields: [string, string][] = [
+    ["Priority", priorityBadge(data.priority)],
+    ["Assigned to", data.assigneeName ?? "_Unassigned_"],
+    ["Due date", dueLine],
   ]
-  if (data.dueDate) {
-    fields.push({
-      type: "mrkdwn",
-      text: `*Due Date*\n${data.dueDate.toLocaleDateString("en-GB")}`,
-    })
-  }
   if (data.assessmentName) {
-    fields.push({
-      type: "mrkdwn",
-      text: `*Assessment*\n${data.assessmentName}`,
-    })
+    detailFields.push(["Assessment", data.assessmentName])
   }
 
   await sendToSlack(webhookUrl, {
-    text: `New task created: "${data.taskTitle}" by ${data.creatorName}`,
-    blocks: [
+    text: `📋 New task created: "${data.taskTitle}"`,
+    attachments: [
       {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `*📋 New Task Created*\n<${tasksUrl}|View Tasks>`,
-        },
+        color: priorityColor(data.priority),
+        blocks: [
+          header("📋  New Task Created"),
+          divider(),
+          section(`*${data.taskTitle}*`),
+          fields(detailFields),
+          divider(),
+          context(`Created by *${data.creatorName}*  ·  ${nowStr()}  ·  GCR Tool`),
+          actions([button("Open Tasks →", url, "primary")]),
+        ],
       },
-      divider(),
-      { type: "section", fields },
     ],
   })
 }
@@ -146,34 +260,33 @@ export async function notifyTaskStatusChanged(
   const { webhookUrl, notifications } = await getOrgSlackSettings(orgId)
   if (!webhookUrl || notifications.taskStatusChanged === false) return
 
-  const tasksUrl = `${APP_URL}/org/${data.orgSlug}/tasks`
+  const url = `${APP_URL}/org/${data.orgSlug}/tasks`
   const isCompleted = data.newStatus === "COMPLETED"
-  const header = isCompleted ? `*✅ Task Completed*` : `*🔄 Task Status Changed*`
+  const title = isCompleted ? "✅  Task Completed" : "🔄  Task Status Updated"
 
-  const fields: SlackBlock[] = [
-    { type: "mrkdwn", text: `*Task*\n${data.taskTitle}` },
-    {
-      type: "mrkdwn",
-      text: `*Status*\n${statusEmoji(data.oldStatus)} ${formatStatus(data.oldStatus)} → ${statusEmoji(data.newStatus)} ${formatStatus(data.newStatus)}`,
-    },
-    { type: "mrkdwn", text: `*Changed by*\n${data.changedByName}` },
+  const detailFields: [string, string][] = [
+    ["Previous status", taskStatusBadge(data.oldStatus)],
+    ["New status", taskStatusBadge(data.newStatus)],
   ]
   if (data.assigneeName) {
-    fields.push({ type: "mrkdwn", text: `*Assignee*\n${data.assigneeName}` })
+    detailFields.push(["Assignee", data.assigneeName])
   }
 
   await sendToSlack(webhookUrl, {
-    text: `Task "${data.taskTitle}" moved to ${formatStatus(data.newStatus)} by ${data.changedByName}`,
-    blocks: [
+    text: `${isCompleted ? "✅" : "🔄"} Task "${data.taskTitle}" → ${formatStatus(data.newStatus)}`,
+    attachments: [
       {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `${header}\n<${tasksUrl}|View Tasks>`,
-        },
+        color: taskStatusColor(data.newStatus),
+        blocks: [
+          header(title),
+          divider(),
+          section(`*${data.taskTitle}*`),
+          fields(detailFields),
+          divider(),
+          context(`Changed by *${data.changedByName}*  ·  ${nowStr()}  ·  GCR Tool`),
+          actions([button("Open Tasks →", url, "primary")]),
+        ],
       },
-      divider(),
-      { type: "section", fields },
     ],
   })
 }
@@ -196,51 +309,35 @@ export async function notifyControlSaved(
   const { webhookUrl, notifications } = await getOrgSlackSettings(orgId)
   if (!webhookUrl || notifications.assessmentControlSaved === false) return
 
-  const assessmentUrl = `${APP_URL}/org/${data.orgSlug}/assessments/${data.assessmentId}`
+  const url = `${APP_URL}/org/${data.orgSlug}/assessments/${data.assessmentId}`
 
-  const blocks: SlackBlock[] = [
-    {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: `*📋 Control Response Saved*\n<${assessmentUrl}|View Assessment>`,
-      },
-    },
+  const blocks: Block[] = [
+    header("📝  Control Response Recorded"),
     divider(),
-    {
-      type: "section",
-      fields: [
-        { type: "mrkdwn", text: `*Assessment*\n${data.assessmentName}` },
-        {
-          type: "mrkdwn",
-          text: `*Control*\n${data.controlRef} — ${data.controlTitle}`,
-        },
-        {
-          type: "mrkdwn",
-          text: `*Status*\n${statusEmoji(data.complianceStatus)} ${formatStatus(data.complianceStatus)}`,
-        },
-        { type: "mrkdwn", text: `*Saved by*\n${data.savedByName}` },
-      ],
-    },
+    section(`*${data.assessmentName}*`),
+    fields([
+      ["Control", `\`${data.controlRef}\`  ${data.controlTitle}`],
+      ["Compliance status", complianceBadge(data.complianceStatus)],
+    ]),
   ]
 
   if (data.gaps) {
     const truncated =
-      data.gaps.length > 300
-        ? data.gaps.slice(0, 300) + "..."
-        : data.gaps
-    blocks.push({
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: `*Gaps identified*\n${truncated}`,
-      },
-    })
+      data.gaps.length > 280 ? data.gaps.slice(0, 280) + "…" : data.gaps
+    blocks.push(
+      section(`*Gaps identified*\n>${truncated}`)
+    )
   }
 
+  blocks.push(
+    divider(),
+    context(`Saved by *${data.savedByName}*  ·  ${nowStr()}  ·  GCR Tool`),
+    actions([button("Open Assessment →", url, "primary")])
+  )
+
   await sendToSlack(webhookUrl, {
-    text: `${data.savedByName} saved control ${data.controlRef} as ${formatStatus(data.complianceStatus)} in "${data.assessmentName}"`,
-    blocks,
+    text: `📝 ${data.savedByName} assessed control ${data.controlRef} — ${formatStatus(data.complianceStatus)}`,
+    attachments: [{ color: complianceColor(data.complianceStatus), blocks }],
   })
 }
 
@@ -260,34 +357,29 @@ export async function notifyAssessmentCompleted(
   const { webhookUrl, notifications } = await getOrgSlackSettings(orgId)
   if (!webhookUrl || notifications.assessmentCompleted === false) return
 
-  const assessmentUrl = `${APP_URL}/org/${data.orgSlug}/assessments/${data.assessmentId}`
-  const scoreEmoji =
-    data.overallScore >= 80 ? "🟢" : data.overallScore >= 50 ? "🟡" : "🔴"
+  const url = `${APP_URL}/org/${data.orgSlug}/assessments/${data.assessmentId}`
+  const scoreColor =
+    data.overallScore >= 80 ? COLORS.green
+    : data.overallScore >= 50 ? COLORS.amber
+    : COLORS.red
 
   await sendToSlack(webhookUrl, {
-    text: `Assessment "${data.assessmentName}" completed with score ${data.overallScore}% by ${data.completedByName}`,
-    blocks: [
+    text: `🏁 Assessment completed: "${data.assessmentName}" — ${data.overallScore}%`,
+    attachments: [
       {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `*🏁 Assessment Completed*\n<${assessmentUrl}|View Results>`,
-        },
-      },
-      divider(),
-      {
-        type: "section",
-        fields: [
-          { type: "mrkdwn", text: `*Assessment*\n${data.assessmentName}` },
-          {
-            type: "mrkdwn",
-            text: `*Overall Score*\n${scoreEmoji} *${data.overallScore}%*`,
-          },
-          {
-            type: "mrkdwn",
-            text: `*Controls Assessed*\n${data.totalResponses}`,
-          },
-          { type: "mrkdwn", text: `*Completed by*\n${data.completedByName}` },
+        color: scoreColor,
+        blocks: [
+          header("🏁  Assessment Completed"),
+          divider(),
+          section(`*${data.assessmentName}*`),
+          section(`*Overall Score*\n${scoreBar(data.overallScore)}`),
+          fields([
+            ["Controls assessed", `${data.totalResponses} responses`],
+            ["Result", data.overallScore >= 80 ? "✅  Pass" : data.overallScore >= 50 ? "🟡  Needs Work" : "🔴  Fail"],
+          ]),
+          divider(),
+          context(`Completed by *${data.completedByName}*  ·  ${nowStr()}  ·  GCR Tool`),
+          actions([button("View Results →", url, "primary")]),
         ],
       },
     ],
