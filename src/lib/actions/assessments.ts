@@ -9,6 +9,7 @@ import {
 } from "@/lib/validations/assessment"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { notifyControlSaved, notifyAssessmentCompleted } from "@/lib/slack"
 
 async function getAuthenticatedUser() {
   const session = await auth()
@@ -234,6 +235,55 @@ export async function saveAssessmentResponse(formData: FormData) {
     })
   }
 
+  // Fire Slack notification for control response
+  const assessmentFull = await db.assessment.findUnique({
+    where: { id: assessmentId },
+    select: { name: true, org: { select: { slug: true } } },
+  })
+
+  let controlRef = "—"
+  let controlTitle = "—"
+  if (controlId) {
+    const control = await db.control.findUnique({
+      where: { id: controlId },
+      select: { number: true, title: true },
+    })
+    controlRef = control?.number ?? controlId
+    controlTitle = control?.title ?? ""
+  } else if (clauseId) {
+    const clause = await db.clause.findUnique({
+      where: { id: clauseId },
+      select: { number: true, title: true },
+    })
+    controlRef = clause?.number ?? clauseId
+    controlTitle = clause?.title ?? ""
+  } else if (requirementId) {
+    const req = await db.requirement.findUnique({
+      where: { id: requirementId },
+      select: { number: true, description: true },
+    })
+    controlRef = req?.number ?? requirementId
+    controlTitle = req?.description?.slice(0, 80) ?? ""
+  }
+
+  const saver = await db.user.findUnique({
+    where: { id: user.id },
+    select: { name: true, email: true },
+  })
+
+  if (assessmentFull) {
+    await notifyControlSaved(assessment.orgId, {
+      assessmentName: assessmentFull.name,
+      assessmentId,
+      controlRef,
+      controlTitle,
+      complianceStatus: responseData.complianceStatus,
+      savedByName: saver?.name || user.email || "Someone",
+      gaps: responseData.gaps,
+      orgSlug: assessmentFull.org.slug,
+    })
+  }
+
   revalidatePath(`/org/${assessment.org.slug}/assessments/${assessmentId}`)
   return { success: true }
 }
@@ -288,6 +338,11 @@ export async function completeAssessment(assessmentId: string) {
     overallScore = Math.round(totalPoints / scoredResponses.length)
   }
 
+  const completedAssessment = await db.assessment.findUnique({
+    where: { id: assessmentId },
+    select: { name: true, org: { select: { slug: true } } },
+  })
+
   await db.assessment.update({
     where: { id: assessmentId },
     data: {
@@ -296,6 +351,23 @@ export async function completeAssessment(assessmentId: string) {
       endDate: new Date(),
     },
   })
+
+  // Fire Slack notification
+  const completer = await db.user.findUnique({
+    where: { id: user.id },
+    select: { name: true, email: true },
+  })
+
+  if (completedAssessment) {
+    await notifyAssessmentCompleted(assessment.orgId, {
+      assessmentName: completedAssessment.name,
+      assessmentId,
+      overallScore,
+      completedByName: completer?.name || user.email || "Someone",
+      totalResponses: scoredResponses.length,
+      orgSlug: completedAssessment.org.slug,
+    })
+  }
 
   revalidatePath(`/org/${assessment.org.slug}/assessments/${assessmentId}`)
   return { success: true, overallScore }

@@ -106,6 +106,46 @@ export async function updateOrganization(formData: FormData) {
   return { success: true }
 }
 
+export async function updateSlackSettings(formData: FormData) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "Unauthorized" }
+
+  const orgId = formData.get("orgId") as string
+  const orgSlug = formData.get("orgSlug") as string
+  const webhookUrl = (formData.get("slackWebhookUrl") as string)?.trim() || null
+
+  if (webhookUrl && !webhookUrl.startsWith("https://hooks.slack.com/")) {
+    return { error: "Invalid Slack webhook URL. Must start with https://hooks.slack.com/" }
+  }
+
+  const notifications = {
+    taskCreated: formData.get("notif_taskCreated") === "on",
+    taskStatusChanged: formData.get("notif_taskStatusChanged") === "on",
+    assessmentControlSaved: formData.get("notif_assessmentControlSaved") === "on",
+    assessmentCompleted: formData.get("notif_assessmentCompleted") === "on",
+  }
+
+  const org = await db.organization.findUnique({
+    where: { id: orgId },
+    select: { settings: true },
+  })
+  const currentSettings = (org?.settings as Record<string, unknown>) || {}
+
+  await db.organization.update({
+    where: { id: orgId },
+    data: {
+      settings: {
+        ...currentSettings,
+        slackWebhookUrl: webhookUrl,
+        slackNotifications: notifications,
+      },
+    },
+  })
+
+  revalidatePath(`/org/${orgSlug}/settings`)
+  return { success: true }
+}
+
 export async function updateBranding(formData: FormData) {
   const session = await auth()
   if (!session?.user?.id) return { error: "Unauthorized" }

@@ -6,9 +6,10 @@ import { PageHeader } from "@/components/layout/page-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Building2, Users, Palette } from "lucide-react"
+import { Building2, Users, Palette, Zap } from "lucide-react"
 import { GeneralSettingsForm } from "@/components/settings/general-settings-form"
 import { BrandingForm } from "@/components/settings/branding-form"
+import { SlackForm } from "@/components/settings/slack-form"
 
 export default async function SettingsPage({
   params,
@@ -25,6 +26,14 @@ export default async function SettingsPage({
   const settings = (org.settings as Record<string, unknown>) || {}
   const primaryColor = (settings.primaryColor as string) || null
   const appName = (settings.appName as string) || null
+  const slackWebhookUrl = (settings.slackWebhookUrl as string) || null
+  const slackNotifications = (settings.slackNotifications as Record<string, boolean>) || {}
+  const defaultSlackNotifications = {
+    taskCreated: slackNotifications.taskCreated ?? true,
+    taskStatusChanged: slackNotifications.taskStatusChanged ?? true,
+    assessmentControlSaved: slackNotifications.assessmentControlSaved ?? true,
+    assessmentCompleted: slackNotifications.assessmentCompleted ?? true,
+  }
 
   return (
     <div className="space-y-6">
@@ -47,6 +56,10 @@ export default async function SettingsPage({
             <Users className="mr-1.5 h-4 w-4" />
             Members
           </TabsTrigger>
+          <TabsTrigger value="integrations">
+            <Zap className="mr-1.5 h-4 w-4" />
+            Integrations
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="mt-4 space-y-6">
@@ -67,6 +80,15 @@ export default async function SettingsPage({
             primaryColor={primaryColor}
             appName={appName}
             logoUrl={org.logo}
+          />
+        </TabsContent>
+
+        <TabsContent value="integrations" className="mt-4 space-y-6">
+          <SlackForm
+            orgId={org.id}
+            orgSlug={orgSlug}
+            webhookUrl={slackWebhookUrl}
+            notifications={defaultSlackNotifications}
           />
         </TabsContent>
 
