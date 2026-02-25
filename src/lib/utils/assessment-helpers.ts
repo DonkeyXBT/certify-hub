@@ -2,8 +2,11 @@ export type FlatControl = {
   id: string
   number: string
   title: string
+  objective: string | null
+  guidance: string | null
   clauseNumber: string
   clauseTitle: string
+  clauseDescription: string | null
   clauseId: string
 }
 
@@ -17,8 +20,11 @@ export function flattenClauses(clauses: any[]): FlatControl[] {
           id: ctrl.id,
           number: ctrl.number,
           title: ctrl.title,
+          objective: ctrl.objective ?? null,
+          guidance: ctrl.guidance ?? null,
           clauseNumber: clause.number,
           clauseTitle: clause.title,
+          clauseDescription: clause.description ?? null,
           clauseId: clause.id,
         })
       }
