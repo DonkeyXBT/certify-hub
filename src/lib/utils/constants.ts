@@ -15,9 +15,9 @@ import type {
 
 // ─── App ────────────────────────────────────────────────────────────────────
 
-export const APP_NAME = "CertifyHub"
+export const APP_NAME = "Certifi by Cyfenced"
 export const APP_DESCRIPTION =
-  "Multi-tenant GRC platform for ISO certification management"
+  "GRC platform for ISO certification management by Cyfenced"
 export const APP_VERSION = "0.1.0"
 
 // ─── Roles ──────────────────────────────────────────────────────────────────

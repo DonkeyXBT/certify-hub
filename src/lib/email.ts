@@ -19,10 +19,10 @@ export async function sendVerificationEmail({
     await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: `Verify your CertifyHub account`,
+      subject: `Verify your Certifi account`,
       html: `
         <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
-          <h2>Welcome to CertifyHub, ${name}!</h2>
+          <h2>Welcome to Certifi by Cyfenced, ${name}!</h2>
           <p>An account has been created for you in <strong>${orgName}</strong>.</p>
           <p>Click the button below to set your password and activate your account:</p>
           <a href="${verifyUrl}" style="display: inline-block; background-color: #0f172a; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500; margin: 16px 0;">

@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CertifyHub — GRC & ISO Compliance Management",
+  title: "Certifi by Cyfenced — GRC & ISO Compliance Management",
   description:
-    "Multi-tenant governance, risk, and compliance platform for ISO 27001 and ISO 9001 certification management.",
+    "GRC platform by Cyfenced for ISO 27001, ISO 9001, GDPR, NIS2 and SOC 2 certification management.",
 };
 
 export default function RootLayout({

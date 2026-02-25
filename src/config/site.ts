@@ -1,14 +1,14 @@
 export const siteConfig = {
-  name: "CertifyHub",
+  name: "Certifi by Cyfenced",
   description:
-    "Multi-tenant GRC platform for ISO certification management. Streamline your compliance journey with gap assessments, risk management, document control, audit tracking, and more.",
-  url: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+    "GRC platform for ISO certification management by Cyfenced. Streamline your compliance journey with gap assessments, risk management, document control, audit tracking, and more.",
+  url: process.env.NEXT_PUBLIC_APP_URL || "https://gcrtool.cyfenced.nl",
   ogImage: "/og.png",
   links: {
     docs: "/docs",
     support: "/support",
   },
-  creator: "CertifyHub",
+  creator: "Cyfenced",
   keywords: [
     "ISO 27001",
     "ISO 9001",
