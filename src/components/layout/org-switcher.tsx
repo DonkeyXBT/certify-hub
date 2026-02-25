@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ChevronsUpDown, Plus, Building2 } from "lucide-react"
+import { ChevronsUpDown, Plus, Building2, ShieldCheck } from "lucide-react"
 import type { OrgRole } from "@prisma/client"
 import {
   DropdownMenu,
@@ -86,6 +86,14 @@ export function OrgSwitcher({ currentOrg, userOrgs, isSuperAdmin }: OrgSwitcherP
                   <Plus className="size-3.5" />
                 </div>
                 <span>Create organization</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/admin" className="flex items-center gap-2">
+                <div className="flex size-6 items-center justify-center rounded-sm border bg-background">
+                  <ShieldCheck className="size-3.5" />
+                </div>
+                <span>Admin panel</span>
               </Link>
             </DropdownMenuItem>
           </>
