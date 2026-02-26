@@ -1,11 +1,19 @@
 import { z } from "zod"
 
+// Remediation 3: Shared safe-name refinement — reject HTML special characters in
+// all user-controlled name fields to prevent injection at the data layer.
+const safeOrgNameField = z
+  .string()
+  .min(2, "Organization name must be at least 2 characters")
+  .max(100, "Organization name must be at most 100 characters")
+  .trim()
+  .refine(
+    (v) => !/[<>"'&]/.test(v),
+    "Organization name must not contain HTML special characters (< > \" ' &)"
+  )
+
 export const createOrganizationSchema = z.object({
-  name: z
-    .string()
-    .min(2, "Organization name must be at least 2 characters")
-    .max(100, "Organization name must be at most 100 characters")
-    .trim(),
+  name: safeOrgNameField,
   industry: z.string().min(1, "Please select an industry"),
   size: z.string().min(1, "Please select a company size"),
 })
@@ -13,11 +21,7 @@ export const createOrganizationSchema = z.object({
 export type CreateOrganizationInput = z.infer<typeof createOrganizationSchema>
 
 export const updateOrganizationSchema = z.object({
-  name: z
-    .string()
-    .min(2, "Organization name must be at least 2 characters")
-    .max(100, "Organization name must be at most 100 characters")
-    .trim(),
+  name: safeOrgNameField,
   industry: z.string().optional(),
   size: z.string().optional(),
 })
@@ -28,8 +32,26 @@ export const brandingSchema = z.object({
     .regex(/^#[0-9a-fA-F]{6}$/, "Must be a valid hex color")
     .optional()
     .or(z.literal("")),
-  appName: z.string().max(50).optional().or(z.literal("")),
-  logoUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  // Remediation 3: Reject HTML injection in the custom app name branding field.
+  appName: z
+    .string()
+    .max(50)
+    .refine(
+      (v) => !/[<>"'&]/.test(v),
+      "App name must not contain HTML special characters (< > \" ' &)"
+    )
+    .optional()
+    .or(z.literal("")),
+  // Remediation 3 & 5: Validate logoUrl to only allow http/https (no javascript: URIs).
+  logoUrl: z
+    .string()
+    .url("Must be a valid URL")
+    .refine(
+      (v) => v.startsWith("https://") || v.startsWith("http://"),
+      "Logo URL must use http or https"
+    )
+    .optional()
+    .or(z.literal("")),
 })
 
 export const INDUSTRY_OPTIONS = [
